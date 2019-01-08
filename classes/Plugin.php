@@ -74,9 +74,16 @@ class Plugin
 			return;
 		}
 		
+		// Подключаем классы плагина. 
+		// Это делается только после проверки включения WooCommerce, 
+		// потому что в коде используются его классы
+		require( $this->path . 'classes/Base.php' );
+		require( $this->path . 'classes/Customer.php' );
+		require( $this->path . 'classes/CustomerList.php' );
+		require( $this->path . 'classes/CustomerTable.php' );		
+		
 		// Создаем таблицу клиентов
 		$this->customerList = new CustomerList( $this );
-
 	}
 	
 	/**

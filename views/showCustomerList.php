@@ -7,7 +7,7 @@
 <div class="wrap">
 	<h2><?php _e( 'Клиенты', IN_WC_CRM ); ?></h2>
 	<div id="poststuff">
-		<div id="post-body" class="metabox-holder columns-2">
+		<div id="post-body" class="metabox-holder">
 			<div id="post-body-content">
 				<div class="meta-box-sortables ui-sortable">
 					<form method="post">
@@ -19,7 +19,7 @@
 				</div>
 			</div>
 		</div>
-		<br class="clear">TEST
+		<br class="clear">DEBUG
 		<?php
 			$customers = $this->getCustomers();
 			var_dump($customers);

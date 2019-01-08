@@ -96,21 +96,22 @@ class CustomerList extends Base
 		if ( ! is_array( $customers ) ) 
 			$customers = array();
 		
-		
-		
-		
-		// Запрос списка пользователей
-		$customers[ $cacheSet ] = new WP_User_Query( [
-			'role'           => 'customer',		// Роль пользователя
-			'search'         => $search,
-			'search_columns' => array( 'id', 'user_login', 'user_nicename', 'user_email' ),
-			'order'          => 'ASC',
-			'orderby'        => 'display_name',
-			'fields'         => 'all_with_meta',		
-		] );
-		// The User Query
-		// TODO: Сделать вывыод результата в массив
+		// WP_User_Query arguments
+		$args = array(
+			'role'           => 'Customer',
+			'fields'         => 'ID',
+		);
 
+		// The User Query
+		$user_query = new WP_User_Query( $args );
+		$ids = $user_query->get_results();
+		
+		// Создаем массив результатов
+		foreach ( $ids as $id )
+		{
+			$customers[ $cacheSet ][] = new Customer( $id );
+		}
+		
 		// Сохранение к кэш
 		wp_cache_set( self::CACHE_CUSTOMERS, $customers );
 		

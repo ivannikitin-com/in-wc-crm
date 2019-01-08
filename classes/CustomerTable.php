@@ -93,14 +93,9 @@ class CustomerTable extends WP_List_Table
 	 *
 	 * @return mixed
 	 */
-	public function column_default( $item, $column_name ) {
-		switch ( $column_name ) {
-			case 'address':
-			case 'city':
-				return $item[ $column_name ];
-			default:
-				return print_r( $item, true ); //Show the whole array for troubleshooting purposes
-		}
+	public function column_default( $item, $column_name ) 
+	{
+		return $item[ $column_name ];
 	}
 	/**
 	 * Render the bulk edit checkbox
@@ -118,14 +113,14 @@ class CustomerTable extends WP_List_Table
 	 * Method for name column
 	 *
 	 * @param array $item an array of DB data
-	 *
 	 * @return string
 	 */
 	function column_name( $item ) {
-		$delete_nonce = wp_create_nonce( 'sp_delete_customer' );
+		$nonce = wp_create_nonce( 'crm-action-customer' );
 		$title = '<strong>' . $item['name'] . '</strong>';
 		$actions = [
-			'delete' => sprintf( '<a href="?page=%s&action=%s&customer=%s&_wpnonce=%s">Delete</a>', esc_attr( $_REQUEST['page'] ), 'delete', absint( $item['ID'] ), $delete_nonce )
+			'delete' => sprintf( '<a href="?page=%s&action=%s&customer=%s&_wpnonce=%s">Delete</a>', 
+				esc_attr( $_REQUEST['page'] ), 'delete', absint( $item['ID'] ), $nonce )
 		];
 		return $title . $this->row_actions( $actions );
 	}
@@ -136,10 +131,13 @@ class CustomerTable extends WP_List_Table
 	 */
 	function get_columns() {
 		$columns = [
-			'cb'      => '<input type="checkbox" />',
-			'name'    => __( 'Name', 'sp' ),
-			'address' => __( 'Address', 'sp' ),
-			'city'    => __( 'City', 'sp' )
+			'cb'		=> '<input type="checkbox" />',
+			'name'		=> __( 'Клиент', IN_WC_CRM ),
+			'company'	=> __( 'Компания', IN_WC_CRM ),
+			'email'		=> __( 'E-mail', IN_WC_CRM ),
+			'phone'		=> __( 'Телефон', IN_WC_CRM ),
+			'address' 	=> __( 'Адрес', IN_WC_CRM ),
+			'tags' 		=> __( 'Метки', IN_WC_CRM ),
 		];
 		return $columns;
 	}
@@ -150,8 +148,10 @@ class CustomerTable extends WP_List_Table
 	 */
 	public function get_sortable_columns() {
 		$sortable_columns = array(
-			'name' => array( 'name', true ),
-			'city' => array( 'city', false )
+			'name' 		=> array( 'name', true ),
+			'company' 	=> array( 'company', false ),
+			'email' 	=> array( 'email', false ),
+			'phone' 	=> array( 'phone', false ),
 		);
 		return $sortable_columns;
 	}
@@ -162,25 +162,41 @@ class CustomerTable extends WP_List_Table
 	 */
 	public function get_bulk_actions() {
 		$actions = [
-			'bulk-delete' => 'Delete'
+			'bulk-set-tag' => __( 'Назначить метку', IN_WC_CRM ),
 		];
 		return $actions;
 	}
 	/**
 	 * Handles data query and filter, sorting, and pagination.
 	 */
-	public function prepare_items() {
+	public function prepare_items() 
+	{
 		$this->_column_headers = $this->get_column_info();
+		
 		/** Process bulk action */
 		$this->process_bulk_action();
+	
+		$customers = $this->plugin->customerList->getCustomers();
+		$this->items = array();	
+		foreach ( $customers as $customer )
+		{
+			$this->items[] = array(
+				'name' 		=> $customer->get_display_name(),
+				'company' 	=> $customer->get_billing_company(),
+				'email' 	=> $customer->get_email(),
+				'phone' 	=> $customer->get_billing_phone(),
+				'address' 	=> $customer->getAddress(),
+				'tags' 		=> $customer->get_display_name(),
+			);
+		}
+		
+		$total_items  = count( $customers );	
 		$per_page     = $this->get_items_per_page( 'customers_per_page', 5 );
 		$current_page = $this->get_pagenum();
-		$total_items  = self::record_count();
 		$this->set_pagination_args( [
 			'total_items' => $total_items, //WE have to calculate the total number of items
 			'per_page'    => $per_page //WE have to determine how many items to show on a page
 		] );
-		$this->items = self::get_customers( $per_page, $current_page );
 	}
 	
 	
@@ -215,6 +231,4 @@ class CustomerTable extends WP_List_Table
 			exit;
 		}
 	}
-
-	
 } 
