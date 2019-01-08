@@ -25,8 +25,8 @@ class CustomerList extends Base
 		add_filter( 'set-screen-option', [ __CLASS__, 'set_screen' ], 10, 3 );
 		
 		// Сброс кэша клиентов
-		do_action('user_register', 	[ $this, 'flushCustomersCache' ] );
-		do_action('profile_update', [ $this, 'flushCustomersCache' ] );
+		do_action('user_register', 	[ $this, 'flushCustomersCache' ], 10, 1 );
+		do_action('profile_update', [ $this, 'flushCustomersCache' ], 10, 2 );
 		
 	}
 	
@@ -122,7 +122,7 @@ class CustomerList extends Base
 	/**
 	 * Сбрасывсает кэш клиентов
 	 */
-	public function flushCustomersCache()
+	public function flushCustomersCache( $arg1='', $arg2='')
 	{
 		wp_cache_delete( self::CACHE_CUSTOMERS );
 	}
