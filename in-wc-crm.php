@@ -37,6 +37,8 @@ define( 'IN_WC_CRM', 		'in-wc-crm' );	// Text Domain
 require_once( 'classes/exceptions.php' );
 require_once( 'classes/Plugin.php' );
 require_once( 'classes/Base.php' );
+require_once( 'classes/Customer.php' );
+require_once( 'classes/Address.php' );
 require_once( 'classes/CustomerList.php' );
 require_once( 'classes/CustomerTable.php' );
 

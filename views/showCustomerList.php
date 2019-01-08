@@ -12,12 +12,17 @@
 				<div class="meta-box-sortables ui-sortable">
 					<form method="post">
 						<?php
-						$this->customerTable->prepare_items();
-						$this->customerTable->display(); ?>
+							$this->customerTable->prepare_items();
+							$this->customerTable->display(); 
+						?>
 					</form>
 				</div>
 			</div>
 		</div>
-		<br class="clear">
+		<br class="clear">TEST
+		<?php
+			$customers = $this->getCustomers();
+			var_dump($customers);
+		?>
 	</div>
 </div>

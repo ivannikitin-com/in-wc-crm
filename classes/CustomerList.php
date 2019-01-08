@@ -3,6 +3,7 @@
  * Класс Таблица клиентов
  */
 namespace IN_WC_CRM;
+use \WP_User_Query as WP_User_Query;
 
 class CustomerList extends Base
 {
@@ -23,8 +24,10 @@ class CustomerList extends Base
 		add_action( 'admin_menu', [ $this, 'addAdminMenu' ] );
 		add_filter( 'set-screen-option', [ __CLASS__, 'set_screen' ], 10, 3 );
 		
+		// Сброс кэша клиентов
+		do_action('user_register', 	[ $this, 'flushCustomersCache' ] );
+		do_action('profile_update', [ $this, 'flushCustomersCache' ] );
 		
-		//$this->customerTable = new CustomerTable();
 	}
 	
 	public static function set_screen( $status, $option, $value ) {
@@ -44,7 +47,7 @@ class CustomerList extends Base
 		add_screen_option( $option, $args );
 		
 		// Таблица со списком клиентов
-		$this->customerTable = new CustomerTable();
+		$this->customerTable = new CustomerTable( $this->plugin );
 	}	
 	
 	/**
@@ -72,4 +75,54 @@ class CustomerList extends Base
 		include( $this->plugin->getView( 'showCustomerList' ) );
 	}		
 	
-} 
+	
+	const CACHE_CUSTOMERS = 'in-wc-crm-customers';
+	
+	/**
+	 * Возвращает список клиентов
+	 * @param string $search 	Строка поиска клиента
+	 */
+	public function getCustomers( $search='' )
+	{
+		// Набор пользователей по результату поиска
+		$cacheSet = md5( $search );
+		
+		// Запрос кэша
+		$customers = wp_cache_get( self::CACHE_CUSTOMERS );
+		if ( $customers !== false && isset( $customers[ $cacheSet ] ) )
+			return $customers[ $cacheSet ];
+		
+		// Массив результатов для кэша
+		if ( ! is_array( $customers ) ) 
+			$customers = array();
+		
+		
+		
+		
+		// Запрос списка пользователей
+		$customers[ $cacheSet ] = new WP_User_Query( [
+			'role'           => 'customer',		// Роль пользователя
+			'search'         => $search,
+			'search_columns' => array( 'id', 'user_login', 'user_nicename', 'user_email' ),
+			'order'          => 'ASC',
+			'orderby'        => 'display_name',
+			'fields'         => 'all_with_meta',		
+		] );
+		// The User Query
+		// TODO: Сделать вывыод результата в массив
+
+		// Сохранение к кэш
+		wp_cache_set( self::CACHE_CUSTOMERS, $customers );
+		
+		// Возврат результатов
+		return $customers[ $cacheSet ];
+	}	
+	
+	/**
+	 * Сбрасывсает кэш клиентов
+	 */
+	public function flushCustomersCache()
+	{
+		wp_cache_delete( self::CACHE_CUSTOMERS );
+	}
+}

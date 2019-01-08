@@ -16,12 +16,22 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 
 class CustomerTable extends WP_List_Table
 {
-	/** Class constructor */
-	public function __construct() {
+	/**
+	 * Объект плагина
+	 */
+	protected $plugin;	
+	
+	/** 
+	 * Конструктор класса
+	 * @param Plugin	$plugin	Ссылка на объект плагина	 
+	 */
+	public function __construct( $plugin )
+	{
+		$this->plugin = $plugin;
 		parent::__construct( [
-			'singular' => __( 'Customer', 'sp' ), //singular name of the listed records
-			'plural'   => __( 'Customers', 'sp' ), //plural name of the listed records
-			'ajax'     => false //does this table support ajax?
+			'singular' => __( 'Клиент', IN_WC_CRM ), 		// Название в единичном числе
+			'plural'   => __( 'Клиенты', IN_WC_CRM ), 		// Название во множественном числе
+			'ajax'     => false 							// Должна ли таблица поддерживать AJAX
 		] );
 	}
 	/**
@@ -67,9 +77,13 @@ class CustomerTable extends WP_List_Table
 		$sql = "SELECT COUNT(*) FROM {$wpdb->prefix}customers";
 		return $wpdb->get_var( $sql );
 	}
-	/** Text displayed when no customer data is available */
+	
+	
+	/** 
+	 * Вывод текста если нет клиентов 
+	 */
 	public function no_items() {
-		_e( 'No customers avaliable.', 'sp' );
+		_e( 'Клиенты не найдены', IN_WC_CRM );
 	}
 	/**
 	 * Render a column when no column specific method exist.
@@ -168,6 +182,8 @@ class CustomerTable extends WP_List_Table
 		] );
 		$this->items = self::get_customers( $per_page, $current_page );
 	}
+	
+	
 	public function process_bulk_action() {
 		//Detect when a bulk action is being triggered...
 		if ( 'delete' === $this->current_action() ) {
