@@ -95,7 +95,7 @@ class CustomerTable extends WP_List_Table
 	 */
 	public function column_default( $item, $column_name ) 
 	{
-		return $item[ $column_name ];
+		return apply_filters( 'in_wc_crm_customer_table_value', $item[ $column_name ], $column_name, $item[ 'id' ] );
 	}
 	/**
 	 * Render the bulk edit checkbox
@@ -181,6 +181,7 @@ class CustomerTable extends WP_List_Table
 		foreach ( $customers as $customer )
 		{
 			$this->items[] = array(
+				'id' 		=> $customer->get_id(),
 				'name' 		=> $customer->get_display_name(),
 				'company' 	=> $customer->get_billing_company(),
 				'email' 	=> $customer->get_email(),

@@ -61,6 +61,12 @@ class Plugin
 	 * Список клиентов
 	 */
 	public $customerList;
+
+	/**
+	 * Метки клиентов
+	 */
+	public $customerTag;
+
 	
 	/**
 	 * Инициализация компонентов плагина
@@ -81,9 +87,13 @@ class Plugin
 		require( $this->path . 'classes/Customer.php' );
 		require( $this->path . 'classes/CustomerList.php' );
 		require( $this->path . 'classes/CustomerTable.php' );		
+		require( $this->path . 'classes/CustomerTag.php' );		
 		
 		// Создаем таблицу клиентов
 		$this->customerList = new CustomerList( $this );
+		
+		// Создаем метки клиентов
+		$this->customerTag = new CustomerTag( $this );
 	}
 	
 	/**

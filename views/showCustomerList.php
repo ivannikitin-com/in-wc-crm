@@ -19,10 +19,11 @@
 				</div>
 			</div>
 		</div>
-		<br class="clear">DEBUG
+		<br class="clear">
 		<?php
-			$customers = $this->getCustomers();
-			var_dump($customers);
+			echo '<h2>Debug</h2>';
+			//$customers = $this->getCustomers();
+			//var_dump($customers);
 		?>
 	</div>
 </div>
