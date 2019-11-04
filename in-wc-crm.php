@@ -33,12 +33,14 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 /* Глобальные константы плагина */
 define( 'IN_WC_CRM', 		'in-wc-crm' );	// Text Domain
 
-/* Файлы плагина */
-require_once( 'classes/exceptions.php' );
+/* Файлы ядра плагина */
 require_once( 'classes/Plugin.php' );
+require_once( 'classes/ExtensionManager.php' );
+require_once( 'classes/Extensions/IExtension.php' );
+require_once( 'classes/Extensions/Base.php' );
 
 /* Запуск плагина */
-new IN_WC_CRM\Plugin( 
+\IN_WC_CRM\Plugin::init( 
 	plugin_dir_path( __FILE__ ), 			// Путь к папке плагина
 	plugin_dir_url( __FILE__ ), 			// URL к папке плагина
 	get_file_data( __FILE__, array(			// Мета-данные из заголовка плагина

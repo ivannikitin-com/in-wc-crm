@@ -2,8 +2,7 @@
 /**
  * Класс Plugin
  * Основной класс плагина. 
- * Служит платформой для всех остальных, отвечает за правильную инициализацию. 
- * Конструкторы всех остальных классов вызываются в правильное время.
+ * Является singleton, то есть обращение из любого места должно быть таким Plugin::get()
  */
 namespace IN_WC_CRM;
 
@@ -27,7 +26,45 @@ class Plugin
 	/**
 	 * Версия плагина
 	 */
-	public $version;	
+	public $version;
+
+	/**
+     * @var Plugin
+     */
+    private static $instance = null;
+
+	/**
+     * @var ExtensionManager
+     */
+    public $extensionManager = null;
+
+
+	/**
+	 * Иницмиализация плагина
+	 * Должна вызываться только один раз. 
+	 * @param string	$path	Путь к папке плагина
+	 * @param string	$url	URL к папке плагина
+	 * @param string	$meta	Мета-данные плагина
+	 */
+	public static function init( $path, $url, $meta )
+	{
+		if ( static::$instance !== null )
+			throw new \Exception( __('Объект Plugin уже инициализирован!', IN_WC_CRM) );
+		
+		static::$instance = new static( $path, $url, $meta );
+	}
+
+	/**
+	 * Возвращает объект плагина
+	 * @return	Plugin
+	 */
+	public static function get()
+	{
+		if ( static::$instance === null )
+			throw new \Exception( __('Объект Plugin не инициализирован!', IN_WC_CRM) ); 
+			
+		return static::$instance;
+	}
 	
 	/**
 	 * Конструктор плагина
@@ -35,17 +72,18 @@ class Plugin
 	 * @param string	$url	URL к папке плагина
 	 * @param string	$meta	Мета-данные плагина
 	 */
-	public function __construct( $path, $url, $meta )
+	private function __construct( $path, $url, $meta )
 	{
 		// Инициализация свойств
 		$this->path 	= $path;
 		$this->url 		= $url;
 		$this->name 	= $meta[ 'Name' ];
 		$this->version 	= $meta[ 'Version' ];
+		$this->extensionManager = new ExtensionManager( $path );
 		
 		// Хуки
 		add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
-		add_action( 'init', array( $this, 'init' ) );
+		add_action( 'init', array( $this, 'wp_init' ) );
 	}
 	
 	/**
@@ -58,20 +96,9 @@ class Plugin
 	}
 	
 	/**
-	 * Список клиентов
+	 * Хук init
 	 */
-	public $customerList;
-
-	/**
-	 * Метки клиентов
-	 */
-	public $customerTag;
-
-	
-	/**
-	 * Инициализация компонентов плагина
-	 */
-	public function init()
+	public function wp_init()
 	{
 		// Проверка наличия WC		
 		if ( ! in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) 
@@ -79,21 +106,6 @@ class Plugin
 			add_action( 'admin_notices', array( $this, 'showNoticeNoWC' ) );
 			return;
 		}
-		
-		// Подключаем классы плагина. 
-		// Это делается только после проверки включения WooCommerce, 
-		// потому что в коде используются его классы
-		require( $this->path . 'classes/Base.php' );
-		require( $this->path . 'classes/Customer.php' );
-		require( $this->path . 'classes/CustomerList.php' );
-		require( $this->path . 'classes/CustomerTable.php' );		
-		require( $this->path . 'classes/CustomerTag.php' );		
-		
-		// Создаем таблицу клиентов
-		$this->customerList = new CustomerList( $this );
-		
-		// Создаем метки клиентов
-		$this->customerTag = new CustomerTag( $this );
 	}
 	
 	/**
@@ -102,24 +114,11 @@ class Plugin
 	public function showNoticeNoWC()
 	{
 		echo '<div class="notice notice-warning no-woocommerce"><p>';
-		printf( esc_html__( 'Для работы плагина %s требуется установить и активировать плагин WooCommerce.', IN_WC_CRM ), 
-			$this->name . ' ' . $this->version  );
+		printf( 
+			esc_html__( 'Для работы плагина "%s" требуется установить и активировать плагин WooCommerce.', IN_WC_CRM ), 
+			$this->name . ' ' . $this->version  
+		);
 		_e( 'В настоящий момент все функции плагина деактивированы.', IN_WC_CRM );
 		echo '</p></div>';
 	}
-	
-	/**
-	 * Метод возвращает имя файала с HTML шаблоном для вывода
-	 * @param string	$name	Название метода или название шаблона для вывода
-	 * @return string	полный путь к файлу представления
-	 */
-	public function getView( $name )
-	{	
-		$viewFile = $this->path . 'views/' . $name . '.php';
-		if ( ! file_exists( $viewFile ) )
-			throw new FileNotFoundException( __( 'Не найден файл представления' . ' ' . $viewFile, IN_WC_CRM ) );
-		return $viewFile;
-	}
-	
-	
 }
