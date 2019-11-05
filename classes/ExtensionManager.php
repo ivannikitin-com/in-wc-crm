@@ -15,7 +15,7 @@ class ExtensionManager
 	/**
 	 * Массив с расширениями
 	 */
-	private $extensions;
+	public $extensions;
 
 	/**
 	 * Конструктор
@@ -62,6 +62,9 @@ class ExtensionManager
 
         // Хук на инициализацию расширения
         add_action( 'init', array( $this, 'init' ) );
+        
+        // Хук на создание или добавление основного меню
+        add_action( 'admin_menu', array( $this, 'addMenu' ) );
     }
 
 	/**
@@ -87,9 +90,61 @@ class ExtensionManager
                 continue;
             }
             
-            // Пытаемся создать эккземпляр класса
+            // Пытаемся создать экземпляр класса
             $this->extensions[$extension]['obj'] = new $extensionClass();
 
         }
+    }
+
+	/**
+	 * СОздание основного меню и добавление в него пунктов
+	 */
+	public function addMenu()
+	{
+        $menu_slug = IN_WC_CRM;
+        add_menu_page(
+            __( 'IN WC CRM', IN_WC_CRM),    // Текст, который будет использован в теге <title> на странице, относящейся к пункту меню
+            __( 'CRM', IN_WC_CRM),          // Название пункта меню в сайдбаре админ-панели
+            'manage_options',               // Права пользователя (возможности), необходимые чтобы пункт меню появился в списке 
+            $menu_slug,                     // Уникальное название (slug), по которому затем можно обращаться к этому меню
+            array( $this, 'adminMenuContent' ),    // Функция, которая выводит контент страницы пункта меню
+            'dashicons-id',                 // Иконка для пункта меню
+            58                              // Число определяющее позицию меню (после WooCommere)
+        );
+
+        // Обрабатываем все расширения и добавляем нужные в меню
+        foreach( $this->extensions as $name => $data )
+        {
+            $extension = $data['obj'];
+            if ( ! is_object( $extension ) )
+                continue;
+
+            // Какие интерфейсы реализует это расширение?
+            $interfaces = class_implements( $extension );
+
+            // Проверим ожидаемые интерфейсы
+            if ( in_array( 'IN_WC_CRM\Extensions\IAdminPage' , $interfaces) )  
+            {
+                // Это расширение реализует админ.страницу
+                add_submenu_page(
+                    $menu_slug,                             // Название (slug) родительского меню
+                    $extension->getAdminPageTitle(),        // Текст, который будет использован в теге title на странице
+                    $extension->getAdminPageMenuTitle(),    // Текст, который будет использован как называние пункта меню
+                    $extension->getAdminPageСapability(),   // Возможность пользователя, чтобы иметь доступ к меню
+                    $extension->getAdminPageSlug(),         // Уникальное название (slug)
+                    array( $extension, 'renderAdminPage' )  // Название функции которая будет вызваться, чтобы вывести контент создаваемой страницы
+                );
+            }
+        }
+
+
+    }
+
+	/**
+	 * Вывод контента админ.меню
+	 */
+    public function adminMenuContent()
+    {
+        //TODO: Придумать, что сюда выводить! 
     }
 }

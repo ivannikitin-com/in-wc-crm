@@ -37,7 +37,9 @@ define( 'IN_WC_CRM', 		'in-wc-crm' );	// Text Domain
 require_once( 'classes/Plugin.php' );
 require_once( 'classes/ExtensionManager.php' );
 require_once( 'classes/Extensions/IExtension.php' );
+require_once( 'classes/Extensions/IAdminPage.php' );
 require_once( 'classes/Extensions/Base.php' );
+require_once( 'classes/Extensions/BaseAdminPage/BaseAdminPage.php' );
 
 /* Запуск плагина */
 \IN_WC_CRM\Plugin::init( 
