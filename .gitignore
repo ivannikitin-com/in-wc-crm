@@ -1,3 +1,6 @@
 *.log
 *.code-workspace
+.vscode
+*.vscode
+.vscode/*
 
