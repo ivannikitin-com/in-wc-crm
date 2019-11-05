@@ -145,6 +145,6 @@ class ExtensionManager
 	 */
     public function adminMenuContent()
     {
-        //TODO: Придумать, что сюда выводить! 
+        @include( Plugin::get()->path . 'info.php' );
     }
 }

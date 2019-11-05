@@ -66,7 +66,7 @@ class BaseAdminPage extends Base implements IAdminPage
     }
 
     /**
-     * Отрисовывает содержимое шапки страницы
+     * Отрисовывает содержимое страницы
      */
     protected function renderAdminPageContent()
     {
