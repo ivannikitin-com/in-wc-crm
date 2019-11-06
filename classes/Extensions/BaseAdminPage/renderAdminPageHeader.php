@@ -9,7 +9,7 @@
         background-color: <?php echo $this->colors[1] ?>;
         margin-left: -160px;
         margin-top: -15px;
-
+        margin-bottom: 15px;
     }
     #in-wc-crm_header > div {
         margin-left: 160px;
