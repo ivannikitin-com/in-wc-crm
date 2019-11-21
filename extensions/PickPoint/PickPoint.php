@@ -1,25 +1,14 @@
 <?php
 /**
- * Класс расширения "Реестры для логистики"
+ * Класс расширения PickPoint
  * Подробную информацию см. в файле info.md
  */
 namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
+use \WC_Order_Query as WC_Order_Query;
 
-/**
- * Подключаем дополнительные классы
- */
-require_once 'WC_Data.php';
-require_once 'WC_Data_SQL.php';
-
-class LogisticsRegistry extends BaseAdminPage
+class PickPoint extends BaseAdminPage
 {
-    /**
-     * Объект получения данных WC
-     * @var WC_Data
-     */
-    private $wc;
-
     /**
      * Конструктор класса
      * Инициализирует свойства класса
@@ -28,8 +17,6 @@ class LogisticsRegistry extends BaseAdminPage
     {
         parent::__construct();
 
-        // Инициализиуем объект данных
-        $this->wc = WC_Data::get();
     }
 
 
@@ -40,7 +27,7 @@ class LogisticsRegistry extends BaseAdminPage
      */
     public function getTitle()
     {
-        return __( 'Реестры товаров по логистическим методам доставки', IN_WC_CRM );
+        return __( 'PickPoint передача реестров заказов для отправки', IN_WC_CRM );
     }
 
     /**
@@ -49,7 +36,7 @@ class LogisticsRegistry extends BaseAdminPage
      */
     public function getAdminPageMenuTitle()
     {
-        return __( 'Реестры для логистики', IN_WC_CRM );
+        return __( 'PickPoint', IN_WC_CRM );
     }
 
     /**
@@ -57,7 +44,17 @@ class LogisticsRegistry extends BaseAdminPage
      */
     protected function renderAdminPageContent()
     {
-        @include 'renderAdminPageContent.php';
+        // Какую страницу показываем
+        $view = ( isset( $_GET[ 'view' ] ) ) ? $_GET[ 'view' ] : 'order-list';
+        switch ( $view )
+        {
+            case 'order-list' : 
+                @include 'views/order-list.php';
+                break;
+
+            default :
+                @include 'views/order-list.php';
+        }
     }
 
 }
