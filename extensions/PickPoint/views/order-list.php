@@ -33,50 +33,49 @@
         <thead>
             <tr>
                 <th>&nbsp;</th>
-                <th>№ Заказа</th>
-                <th>ФИО</th>
-                <th>Сумма</th>
-                <th>Платеж</th>
-                <th>Доставка</th>
-                <th>Склад</th>
+                <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Платеж', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>*</td>
-                <td>42</td>
-                <td>Пупкин</td>
-                <td>6100</td>
-                <td>Наличные</td>
-                <td>PickPoint</td>
-                <td>15</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
             </tr>
         </tbody>
         <tfoot>
             <tr>
-            <th>&nbsp;</th>
-                <th>№ Заказа</th>
-                <th>ФИО</th>
-                <th>Сумма</th>
-                <th>Платеж</th>
-                <th>Доставка</th>
-                <th>Склад</th>
+                <th>&nbsp;</th>
+                <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Платеж', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
             </tr>
         </tfoot>
     </table>
 </section>
 
-
-
-
-<?php
-// Запрос списка заказов
-$query = new WC_Order_Query( array(
-    'limit' => 10,
-    'orderby' => 'date',
-    'order' => 'DESC',
-    'return' => 'objects',
-) );
-$orders = $query->get_orders();
-
-//var_dump($orders);
+<div id="loadBanner" style="
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 48%;
+  margin: auto;
+  padding: 10px;
+  background-color: #ffc">
+<?php esc_html_e( 'Загрузка', IN_WC_CRM ); ?>
+</div>

@@ -17,6 +17,7 @@ class PickPoint extends BaseAdminPage
     {
         parent::__construct();
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
+        add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
     }
 
     /**
@@ -49,6 +50,9 @@ class PickPoint extends BaseAdminPage
         wp_enqueue_script('jquery-ui-datepicker');
         wp_enqueue_style( 'jquery-ui-theme', '//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css' );
 
+        /* Font Awesome */
+        wp_enqueue_style( 'fa-5', Plugin::get()->url . 'asserts/fontawesome-free-5.11.2-web/css/all.css' );
+
         // DataTables
         $dataTables = IN_WC_CRM . '-datatables';
         wp_register_script( 
@@ -73,12 +77,12 @@ class PickPoint extends BaseAdminPage
         // Параметры для скриптов
         $objectName = 'IN_WC_CRM_Pickpoint';
         $data = array(
+            'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
             'orderStatuses' => wc_get_order_statuses()
         );
         wp_localize_script( $scriptID, $objectName, $data );
 
     }
-
 
     /**
      * Отрисовывает содержимое страницы
@@ -98,4 +102,37 @@ class PickPoint extends BaseAdminPage
         }
     }
 
+    /**
+     * Обрабатывает AJAX запрос данных
+     */
+    public function get_orders()
+    {
+        $result = array();
+
+        // Запрос списка заказов
+        $query = new WC_Order_Query( array(
+            'limit' => 10,
+            'orderby' => 'date',
+            'order' => 'DESC',
+            'return' => 'objects',
+        ) );
+        $orders = $query->get_orders(); 
+
+        foreach ($orders as $order)
+        {
+            $result[] = array(
+                'checkbox' => '',
+                'id' => $order->get_order_number(),
+                'customer' => $order->get_formatted_billing_full_name(),
+                'total' => $order->calculate_totals(),
+                'payment' => $order->get_payment_method_title(),
+                'shipping' => $order->get_shipping_method(),
+                'stock' => 'Склад'
+            );
+
+        }
+
+        echo json_encode( $result );
+        wp_die();
+    }
 }
