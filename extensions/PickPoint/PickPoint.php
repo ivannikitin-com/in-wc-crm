@@ -109,9 +109,40 @@ class PickPoint extends BaseAdminPage
     {
         $result = array();
 
+        // Параметры запроса
+        $statuses = ( isset( $_POST['statuses'] ) ) ? sanitize_text_field( $_POST['statuses'] ) : '';
+        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? sanitize_text_field( $_POST['dateFrom'] ) : '';
+        $dateTo = ( isset( $_POST['dateTo'] ) ) ? sanitize_text_field( $_POST['dateTo'] ) : '';
+
+        if ( ! empty( $statuses ) )
+        {
+            $statuses = explode(',', $statuses);
+        }
+
+        if ( ! empty( $dateFrom ) )
+        {
+            $dateFrom = date_parse_from_format('d.m.Y', $dateFrom);
+        }
+        else
+        {
+            $dateFrom = time() - 14 * DAY_IN_SECONDS;
+        }
+
+        if ( ! empty( $dateTo ) )
+        {
+            $dateTo = date_parse_from_format('d.m.Y', $dateTo);
+        }
+        else
+        {
+            $dateTo = time();
+        }       
+
+
         // Запрос списка заказов
         $query = new WC_Order_Query( array(
-            'limit' => 10,
+            'date_created' => '>' . $dateFrom,
+            'date_created' => '<' . $dateTo,
+            'limit' => 100,
             'orderby' => 'date',
             'order' => 'DESC',
             'return' => 'objects',
@@ -123,6 +154,7 @@ class PickPoint extends BaseAdminPage
             $result[] = array(
                 'checkbox' => '',
                 'id' => $order->get_order_number(),
+                'date' => $order->get_date_created()->date_i18n('d.m.Y'),
                 'customer' => $order->get_formatted_billing_full_name(),
                 'total' => $order->calculate_totals(),
                 'payment' => $order->get_payment_method_title(),

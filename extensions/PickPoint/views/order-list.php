@@ -20,7 +20,7 @@
       <input id="dateTo" type="text" class="datePickers">
   </span>
 
-  <button><?php esc_html_e( 'Найти заказы', IN_WC_CRM ); ?></button>
+  <button id="btnLoadOrders"><?php esc_html_e( 'Найти заказы', IN_WC_CRM ); ?></button>
 </section>
 
 <hr>
@@ -34,6 +34,7 @@
             <tr>
                 <th>&nbsp;</th>
                 <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Дата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Платеж', IN_WC_CRM ); ?></th>
@@ -52,12 +53,14 @@
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
+                <td>&nbsp;</td>
             </tr>
         </tbody>
         <tfoot>
             <tr>
                 <th>&nbsp;</th>
                 <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Дата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Платеж', IN_WC_CRM ); ?></th>
@@ -79,3 +82,19 @@
   background-color: #ffc">
 <?php esc_html_e( 'Загрузка', IN_WC_CRM ); ?>
 </div>
+
+<?php
+        // Запрос списка заказов
+        $args = array(
+            'status' => 'processing',
+            'date_created' => (time() - 20 * DAY_IN_SECONDS) . '...' . (time()),
+
+            'limit' => 100,
+            'orderby' => 'date',
+            'order' => 'DESC',
+            'return' => 'objects'            
+        );
+        $orders = wc_get_orders( $args );
+        var_dump($orders);
+
+?>

@@ -58,6 +58,7 @@ jQuery(function ($) {
             "columns": [
                 { "data":  null, defaultContent: '<input type="checkbox" />' },
                 { "data": "id" },
+                { "data": "date" },
                 { "data": "customer" },
                 { "data": "total" },
                 { "data": "payment" },
@@ -78,32 +79,65 @@ jQuery(function ($) {
                 if (orderId){
                     location.assign('/wp-admin/post.php?action=edit&post=' + orderId);
                 }
-                
-                
             }
-
-
-
         } ); 
     
-    /* -------------------- Просмотр и редактирование заказа ------------------- */    
-
+    /* ----------------------------- Кнопка Найти ------------------------------ */    
+    $('#btnLoadOrders').on('click', function(){
+        loadOrders();
+    });    
 
 
     /* ------------------------------ AJAX запрос ------------------------------ */
-    getOrders();
-    function getOrders()
+    loadOrders();
+    function loadOrders()
     {
         $('#loadBanner').show('fast');
-        var data = {
+
+        var ajaxRequest = {
             action: 'get_orders',
-            whatever: 1234
         }; 
 
-		$.post( ajaxurl, data, function(response) {
+        // Читаем требуемые статусы заказов
+        var statuses = $('#statuses').val().split(',').filter(function(val, index){
+            return ( val.trim() != '' );
+        });
+
+        statuses = statuses.map(function(val){
+            return val.trim();
+        });
+ 
+        var selectedStatuses = [];
+        if (statuses.length > 0){
+            for (var key in IN_WC_CRM_Pickpoint.orderStatuses){
+                if (statuses.includes(IN_WC_CRM_Pickpoint.orderStatuses[key])){
+                    selectedStatuses.push(key);
+                }
+            }
+        }
+
+        if (selectedStatuses.length > 0){
+            ajaxRequest['statuses'] = selectedStatuses.join(',');
+        }
+
+        // Дата начала
+        var dateFrom = $('#dateFrom').val().trim();
+        if (dateFrom !== '' )
+        {
+            ajaxRequest['dateFrom'] = dateFrom;
+        }
+
+         // Дата конца
+         var dateTo = $('#dateTo').val().trim();
+         if (dateTo !== '' )
+         {
+             ajaxRequest['dateTo'] = dateTo;
+         }       
+
+		$.post( ajaxurl, ajaxRequest, function(response) {
             var dataSet = JSON.parse( response );
             $('#orderTable').dataTable().fnClearTable();
-            $('#orderTable').dataTable().fnAddData( dataSet );
+            if (dataSet.length > 0 ) $('#orderTable').dataTable().fnAddData( dataSet );
            $('#loadBanner').hide('fast');   
 		});        
     }
