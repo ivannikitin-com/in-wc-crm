@@ -3,48 +3,14 @@
  */
 
 jQuery(function ($) {
-/* ------------------------------ Статусы заказов ------------------------------ */   
-    var availableTags = Object.values( IN_WC_CRM_Pickpoint.orderStatuses );
-
-        function split(val) {
-            return val.split(/,\s*/);
-        }
-
-        function extractLast(term) {
-        return split(term).pop();
+    /* ------------------------------ Статусы заказов ------------------------------ */   
+    var selStatus = $('#status');
+    for (var key in IN_WC_CRM_Pickpoint.orderStatuses){
+        var option = new Option();
+        option.value = key;
+        option.innerHTML = IN_WC_CRM_Pickpoint.orderStatuses[key];
+        selStatus.append(option);
     }
-
-    $("#statuses")
-        // don't navigate away from the field on tab when selecting an item
-        .on("keydown", function (event) {
-            if (event.keyCode === $.ui.keyCode.TAB &&
-                $(this).autocomplete("instance").menu.active) {
-                event.preventDefault();
-            }
-        })
-        .autocomplete({
-            minLength: 0,
-            source: function (request, response) {
-                // delegate back to autocomplete, but extract the last term
-                response($.ui.autocomplete.filter(
-                    availableTags, extractLast(request.term)));
-            },
-            focus: function () {
-                // prevent value inserted on focus
-                return false;
-            },
-            select: function (event, ui) {
-                var terms = split(this.value);
-                // remove the current input
-                terms.pop();
-                // add the selected item
-                terms.push(ui.item.value);
-                // add placeholder to get the comma-and-space at the end
-                terms.push("");
-                this.value = terms.join(", ");
-                return false;
-            }
-        });
 
     /* ------------------------------ Выбор дат ------------------------------ */
     $('.datePickers').datepicker();
@@ -98,26 +64,12 @@ jQuery(function ($) {
             action: 'get_orders',
         }; 
 
-        // Читаем требуемые статусы заказов
-        var statuses = $('#statuses').val().split(',').filter(function(val, index){
-            return ( val.trim() != '' );
-        });
+        // статус заказов
+        var status = $('#status').val();
 
-        statuses = statuses.map(function(val){
-            return val.trim();
-        });
- 
-        var selectedStatuses = [];
-        if (statuses.length > 0){
-            for (var key in IN_WC_CRM_Pickpoint.orderStatuses){
-                if (statuses.includes(IN_WC_CRM_Pickpoint.orderStatuses[key])){
-                    selectedStatuses.push(key);
-                }
-            }
-        }
 
-        if (selectedStatuses.length > 0){
-            ajaxRequest['statuses'] = selectedStatuses.join(',');
+        if (status != '' ){
+            ajaxRequest['status'] = status;
         }
 
         // Дата начала
