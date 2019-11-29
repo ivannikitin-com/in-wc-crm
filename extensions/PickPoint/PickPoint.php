@@ -110,44 +110,43 @@ class PickPoint extends BaseAdminPage
         $result = array();
 
         // Параметры запроса
-        $statuses = ( isset( $_POST['statuses'] ) ) ? sanitize_text_field( $_POST['statuses'] ) : '';
+        // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
+        $args = array(
+            'limit'     => 100,
+            'orderby'   => 'date',
+            'order'     => 'DESC',
+            'return'    => 'objects'            
+        );
+
+        $status = ( isset( $_POST['status'] ) ) ? sanitize_text_field( $_POST['status'] ) : '';
+        if ( ! empty( $status ) )
+        {
+            $args['status'] = $status;
+        }
+
         $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? sanitize_text_field( $_POST['dateFrom'] ) : '';
         $dateTo = ( isset( $_POST['dateTo'] ) ) ? sanitize_text_field( $_POST['dateTo'] ) : '';
 
-        if ( ! empty( $statuses ) )
-        {
-            $statuses = explode(',', $statuses);
-        }
 
-        if ( ! empty( $dateFrom ) )
+        if ( $dateFrom && $dateTo )
         {
-            $dateFrom = date_parse_from_format('d.m.Y', $dateFrom);
+            $args['date_created'] = $dateFrom . '...' . $dateTo;
         }
         else
         {
-            $dateFrom = time() - 14 * DAY_IN_SECONDS;
+            if ( empty( $dateFrom )  && ! empty( $dateTo ) )
+            {
+                $args['date_created'] = '<=' . $dateTo;
+            }
+            if ( ! empty( $dateFrom )  && empty( $dateTo ) )
+            {
+                $args['date_created'] = '>=' . $dateFrom;
+            }
         }
+        
+        // Запрос заказов
+        $orders = wc_get_orders( $args );
 
-        if ( ! empty( $dateTo ) )
-        {
-            $dateTo = date_parse_from_format('d.m.Y', $dateTo);
-        }
-        else
-        {
-            $dateTo = time();
-        }       
-
-
-        // Запрос списка заказов
-        $query = new WC_Order_Query( array(
-            'date_created' => '>' . $dateFrom,
-            'date_created' => '<' . $dateTo,
-            'limit' => 100,
-            'orderby' => 'date',
-            'order' => 'DESC',
-            'return' => 'objects',
-        ) );
-        $orders = $query->get_orders(); 
 
         foreach ($orders as $order)
         {

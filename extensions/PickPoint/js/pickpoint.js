@@ -124,14 +124,14 @@ jQuery(function ($) {
         var dateFrom = $('#dateFrom').val().trim();
         if (dateFrom !== '' )
         {
-            ajaxRequest['dateFrom'] = dateFrom;
+            ajaxRequest['dateFrom'] = rusDateToTimeStamp(dateFrom);
         }
 
          // Дата конца
          var dateTo = $('#dateTo').val().trim();
          if (dateTo !== '' )
          {
-             ajaxRequest['dateTo'] = dateTo;
+             ajaxRequest['dateTo'] = rusDateToTimeStamp(dateTo);
          }       
 
 		$.post( ajaxurl, ajaxRequest, function(response) {
@@ -139,7 +139,13 @@ jQuery(function ($) {
             $('#orderTable').dataTable().fnClearTable();
             if (dataSet.length > 0 ) $('#orderTable').dataTable().fnAddData( dataSet );
            $('#loadBanner').hide('fast');   
-		});        
+        });
+        
+        function rusDateToTimeStamp( dateStr ){
+            return new Date( dateStr.replace( /(\d{2})\.(\d{2})\.(\d{4})/, "$2/$1/$3") ).getTime() / 1000;
+        }
+
+
     }
 
 });

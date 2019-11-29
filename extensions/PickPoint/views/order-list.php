@@ -82,19 +82,3 @@
   background-color: #ffc">
 <?php esc_html_e( 'Загрузка', IN_WC_CRM ); ?>
 </div>
-
-<?php
-        // Запрос списка заказов
-        $args = array(
-            'status' => 'processing',
-            'date_created' => (time() - 20 * DAY_IN_SECONDS) . '...' . (time()),
-
-            'limit' => 100,
-            'orderby' => 'date',
-            'order' => 'DESC',
-            'return' => 'objects'            
-        );
-        $orders = wc_get_orders( $args );
-        var_dump($orders);
-
-?>
