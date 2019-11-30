@@ -86,7 +86,7 @@ class ExtensionManager
             // Проверка интерфейса класса
             if ( ! in_array( 'IN_WC_CRM\Extensions\IExtension' , class_implements( $extensionClass ) ) )
             {
-                error_log( IN_WC_CRM . ': ' . $extension . __(' не рекализует интерфейс IExtension. Расширение игнорируется.', IN_WC_CRM ) );
+                error_log( IN_WC_CRM . ': ' . $extension . __(' не реализует интерфейс IExtension. Расширение игнорируется.', IN_WC_CRM ) );
                 continue;
             }
             

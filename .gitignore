@@ -1,6 +1,7 @@
 *.log
+*.sql
 *.code-workspace
 .vscode
 *.vscode
-.vscode/*
+
 
