@@ -69,12 +69,12 @@ class PickPoint extends BaseAdminPage
         $dataTables = IN_WC_CRM . '-datatables';
         wp_register_script( 
             $dataTables, 
-            Plugin::get()->url . 'extensions/PickPoint/DataTables/datatables.min.js', 
+            Plugin::get()->url . 'asserts/DataTables/datatables.min.js', 
             array( 'jquery', 'jquery-ui-autocomplete', 'jquery-ui-datepicker' ),
             Plugin::get()->version, 
             true );
         wp_enqueue_script( $dataTables ); 
-        wp_enqueue_style( $dataTables, Plugin::get()->url . 'extensions/PickPoint/DataTables/datatables.min.css' );         
+        wp_enqueue_style( $dataTables, Plugin::get()->url . 'asserts/DataTables/datatables.min.css' );         
 
         // Скрипты расширения
         $scriptID = IN_WC_CRM . '-pickpoint';
