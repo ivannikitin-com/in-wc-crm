@@ -12,6 +12,15 @@ jQuery(function ($) {
         selStatus.append(option);
     }
 
+    /* ------------------------------ Методы доставки ------------------------------ */   
+    var selStatus = $('#shipping_method');
+    for (var key in IN_WC_CRM_Pickpoint.shippingMethods){
+        var option = new Option();
+        option.value = key;
+        option.innerHTML = IN_WC_CRM_Pickpoint.shippingMethods[key];
+        selStatus.append(option);
+    }
+
     /* ------------------------------ Выбор дат ------------------------------ */
     $('.datePickers').datepicker();
     
@@ -84,7 +93,15 @@ jQuery(function ($) {
          if (dateTo !== '' )
          {
              ajaxRequest['dateTo'] = rusDateToTimeStamp(dateTo);
-         }       
+         }
+
+         // Метод доставки
+         var shipping_method = $('#shipping_method').val().trim();
+         if (shipping_method !== '' )
+         {
+             ajaxRequest['shipping_method'] = shipping_method;
+         }
+
 
 		$.post( ajaxurl, ajaxRequest, function(response) {
             var dataSet = JSON.parse( response );

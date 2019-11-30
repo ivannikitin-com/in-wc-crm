@@ -6,9 +6,17 @@
 namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
 use \WC_Order_Query as WC_Order_Query;
+use \WC_Shipping as WC_Shipping;
 
 class PickPoint extends BaseAdminPage
 {
+    /**
+     * Методы доставки
+     * @var mixed
+     */
+    private $shippingMethods;
+
+
     /**
      * Конструктор класса
      * Инициализирует свойства класса
@@ -18,6 +26,15 @@ class PickPoint extends BaseAdminPage
         parent::__construct();
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
+
+        // Методы доставки
+        $this->shippingMethods = array();
+        $shipping = new WC_Shipping();        
+        foreach( $shipping->get_shipping_methods() as $key => $method )
+        {
+            $this->shippingMethods[$key] = $method->method_title;
+        }
+
     }
 
     /**
@@ -72,13 +89,14 @@ class PickPoint extends BaseAdminPage
             array( 'jquery', 'jquery-ui-autocomplete', 'jquery-ui-datepicker', $dataTables ),
             Plugin::get()->version, 
             true );
-        wp_enqueue_script( $scriptID );    
+        wp_enqueue_script( $scriptID );
         
         // Параметры для скриптов
         $objectName = 'IN_WC_CRM_Pickpoint';
         $data = array(
             'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
-            'orderStatuses' => wc_get_order_statuses()
+            'orderStatuses' => wc_get_order_statuses(),
+            'shippingMethods' => $this->shippingMethods,
         );
         wp_localize_script( $scriptID, $objectName, $data );
 
@@ -147,9 +165,18 @@ class PickPoint extends BaseAdminPage
         // Запрос заказов
         $orders = wc_get_orders( $args );
 
+        // Требуемый метод доставки
+        $shipping_method = ( isset( $_POST['shipping_method'] ) ) ? sanitize_text_field( $_POST['shipping_method'] ) : '';
 
         foreach ($orders as $order)
         {
+            if ( ! empty( $shipping_method ) )
+            {
+                // Фильтруем по методам доставки
+                if ( $order->get_shipping_method() != $this->shippingMethods[ $shipping_method ] ) 
+                    continue;
+            }
+
             $result[] = array(
                 'checkbox' => '',
                 'id' => $order->get_order_number(),

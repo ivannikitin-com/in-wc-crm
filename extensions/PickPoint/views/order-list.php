@@ -6,13 +6,22 @@
 @include 'header.php';
 
 ?>
-<section id="pickpointControls">
-  <span class="ui-widget">
+<section id="pickpointControls" style="text-align: center">
+  <span>
       <label for="status"><?php esc_html_e( 'Статус заказов', IN_WC_CRM ); ?></label>
       <select id="status">
         <option value=""><?php esc_html_e( 'Все статусы', IN_WC_CRM ); ?></option>
       </select>
   </span>
+
+  <span>
+      <label for="shipping_method"><?php esc_html_e( 'Статус заказов', IN_WC_CRM ); ?></label>
+      <select id="shipping_method">
+        <option value=""><?php esc_html_e( 'Все методы', IN_WC_CRM ); ?></option>
+      </select>
+  </span>
+
+  <br>
 
   <span>
       <label for="dateFrom"><?php esc_html_e( 'Начальная дата', IN_WC_CRM ); ?></label>
