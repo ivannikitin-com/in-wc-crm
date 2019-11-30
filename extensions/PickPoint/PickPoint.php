@@ -130,7 +130,8 @@ class PickPoint extends BaseAdminPage
 
         // Корректировка массива по данным плагина Advanced Shipping methods
         unset($shippingMethods['advanced_shipping']);
-        $shippingMethods['advanced_shipping_pickpoint'] = 'PickPoint';
+		// TODO: Сделать это или настройкой или как-то читать из плагина Advanced Shipping
+        $shippingMethods['advanced_shipping_pickpoint'] = __( 'Пункты выдачи заказов', IN_WC_CRM );
 
         return $shippingMethods;
     }
