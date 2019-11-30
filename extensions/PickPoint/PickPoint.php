@@ -28,12 +28,7 @@ class PickPoint extends BaseAdminPage
         add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
 
         // Методы доставки
-        $this->shippingMethods = array();
-        $shipping = new WC_Shipping();        
-        foreach( $shipping->get_shipping_methods() as $key => $method )
-        {
-            $this->shippingMethods[$key] = $method->method_title;
-        }
+        $this->shippingMethods = $this->getShippingMethods();
 
     }
 
@@ -118,6 +113,26 @@ class PickPoint extends BaseAdminPage
             default :
                 @include 'views/order-list.php';
         }
+    }
+
+    /**
+     * Возвращает массив id => title методов доставки
+     * @return mixed
+     */
+    private function getShippingMethods()
+    {
+        $shippingMethods = array();
+        $shipping = new WC_Shipping();        
+        foreach( $shipping->get_shipping_methods() as $key => $method )
+        {
+            $shippingMethods[$key] = $method->method_title;
+        }
+
+        // Корректировка массива по данным плагина Advanced Shipping methods
+        unset($shippingMethods['advanced_shipping']);
+        $shippingMethods['advanced_shipping_pickpoint'] = 'PickPoint';
+
+        return $shippingMethods;
     }
 
     /**
