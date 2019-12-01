@@ -32,6 +32,8 @@
   </span>
 
   <button id="btnLoadOrders"><?php esc_html_e( 'Найти заказы', IN_WC_CRM ); ?></button>
+  <button id="btnSendOrders"><?php esc_html_e( 'Передать в PickPoint', IN_WC_CRM ); ?></button>
+
 </section>
 
 <hr>
@@ -40,15 +42,15 @@
 <style>
   #orderTable tbody tr td { text-align: center }
 </style>
+<small><?php esc_html_e( 'Для выделения строки просто щелкните по ней', IN_WC_CRM ); ?></small>
 <table id="orderTable" class="display" style="width:100%">
         <thead>
             <tr>
-                <th>&nbsp;</th>
                 <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Дата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Платеж', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
@@ -64,17 +66,15 @@
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
                 <td>&nbsp;</td>
-                <td>&nbsp;</td>
             </tr>
         </tbody>
         <tfoot>
             <tr>
-                <th>&nbsp;</th>
                 <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Дата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Платеж', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
@@ -90,6 +90,8 @@
   left: 48%;
   margin: auto;
   padding: 10px;
-  background-color: #ffc">
-<?php esc_html_e( 'Загрузка', IN_WC_CRM ); ?>
+  background-color: #ffc;
+  border-radius: 8px;
+  border: 1px solid grey">
+<?php esc_html_e( 'Загрузка и обработка данных', IN_WC_CRM ); ?>
 </div>

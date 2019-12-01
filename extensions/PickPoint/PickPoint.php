@@ -29,6 +29,7 @@ class PickPoint extends BaseAdminPage
 
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
+        add_action( 'wp_ajax_send_orders', array( $this, 'send_orders' ) );
 
         // Методы доставки
         $this->shippingMethods = $this->getShippingMethods();
@@ -171,6 +172,12 @@ class PickPoint extends BaseAdminPage
     }
 
     /**
+     * @const Максимальное число заказов, выбираемых из БД
+     */
+    const ORDER_LIMIT = 250;
+
+
+    /**
      * Обрабатывает AJAX запрос данных
      */
     public function get_orders()
@@ -180,7 +187,7 @@ class PickPoint extends BaseAdminPage
         // Параметры запроса
         // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
         $args = array(
-            'limit'     => 250,
+            'limit'     => self::ORDER_LIMIT,
             'orderby'   => 'date',
             'order'     => 'DESC',
             'return'    => 'objects'            
@@ -228,13 +235,12 @@ class PickPoint extends BaseAdminPage
             }
 
             $result[] = array(
-                'checkbox' => '',
                 'id' => $order->get_order_number(),
                 'date' => $order->get_date_created()->date_i18n('d.m.Y'),
                 'customer' => $order->get_formatted_billing_full_name(),
                 'total' => $order->calculate_totals(),
-                'payment' => $order->get_payment_method_title(),
-                'shipping' => $order->get_shipping_method(),
+                'payment_method' => $order->get_payment_method_title(),
+                'shipping_method' => $order->get_shipping_method(),
                 'stock' => 'Склад'
             );
 
@@ -243,4 +249,37 @@ class PickPoint extends BaseAdminPage
         echo json_encode( $result );
         wp_die();
     }
+
+    /**
+     * Обрабатывает AJAX запрос на отправку данных
+     */
+    public function send_orders()
+    {
+        // Требуемый метод доставки
+        $idsString = ( isset( $_POST['ids'] ) ) ? trim( sanitize_text_field( $_POST['ids'] ) ) : '';
+
+        if ( empty( $idsString ) )
+        {
+            esc_html_e( 'Данные для отправки не выбраны. Щелкайте по строкам таблицы для их выделения', IN_WC_CRM );
+            wp_die();            
+        }
+
+        // Логин на удаленный сервер
+
+
+
+
+        $ids = explode(',', $idsString);
+        $args = array(
+            'limit'     => self::ORDER_LIMIT,
+            'return'    => 'objects',
+            'post__in'  => $ids      
+        );
+        $orders = wc_get_orders( $args );
+
+        foreach( $orders as $order )
+        {
+
+        }
+    }    
 }
