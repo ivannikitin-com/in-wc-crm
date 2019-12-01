@@ -180,7 +180,7 @@ class PickPoint extends BaseAdminPage
         // Параметры запроса
         // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
         $args = array(
-            'limit'     => 100,
+            'limit'     => 250,
             'orderby'   => 'date',
             'order'     => 'DESC',
             'return'    => 'objects'            
