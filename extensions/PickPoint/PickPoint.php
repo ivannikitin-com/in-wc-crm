@@ -24,8 +24,12 @@ class PickPoint extends BaseAdminPage
     public function __construct()
     {
         parent::__construct();
+        if ( ! $this->isEnabled() ) 
+            return;  
+
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
+        add_action( 'wp_ajax_send_orders', array( $this, 'send_orders' ) );
 
         // Методы доставки
         $this->shippingMethods = $this->getShippingMethods();
@@ -51,8 +55,38 @@ class PickPoint extends BaseAdminPage
     }
 
     /**
-     * Возвращает название пункта меню
-     * @return string
+     * Возвращает true если этому расширению требуются настройки
+     * @return bool
+     */
+    public function hasSettings()
+    {
+        return true;
+    }
+
+    /**
+     * Показывает секцию настроек
+     */
+    public function showSettings()
+    {
+        @include( Plugin::get()->path . 'extensions/PickPoint/views/settings.php' );
+    }
+
+    /**
+     * Сохраняет массив настроек
+     * @paran mixed $settings массив настроек
+     */
+    public function saveSettings()
+    {
+        $this->settings['pickpoint-api-endpoint'] = isset( $_POST['pickpoint-api-endpoint'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-endpoint'] ) ) : '';
+        $this->settings['pickpoint-api-login'] = isset( $_POST['pickpoint-api-login'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-login'] ) )  : '';
+        $this->settings['pickpoint-api-password'] = isset( $_POST['pickpoint-api-password'] ) ? sanitize_text_field( $_POST['pickpoint-api-password'] ) : '';
+        $this->settings['pickpoint-api-ikn'] = isset( $_POST['pickpoint-api-ikn'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-ikn'] ) ) : '';
+        return parent::saveSettings();
+    }
+
+
+    /**
+     * Подключает скрипты
      */
     public function enqueueScripts()
     {
@@ -69,12 +103,12 @@ class PickPoint extends BaseAdminPage
         $dataTables = IN_WC_CRM . '-datatables';
         wp_register_script( 
             $dataTables, 
-            Plugin::get()->url . 'extensions/PickPoint/DataTables/datatables.min.js', 
+            Plugin::get()->url . 'asserts/DataTables/datatables.min.js', 
             array( 'jquery', 'jquery-ui-autocomplete', 'jquery-ui-datepicker' ),
             Plugin::get()->version, 
             true );
         wp_enqueue_script( $dataTables ); 
-        wp_enqueue_style( $dataTables, Plugin::get()->url . 'extensions/PickPoint/DataTables/datatables.min.css' );         
+        wp_enqueue_style( $dataTables, Plugin::get()->url . 'asserts/DataTables/datatables.min.css' );         
 
         // Скрипты расширения
         $scriptID = IN_WC_CRM . '-pickpoint';
@@ -130,10 +164,17 @@ class PickPoint extends BaseAdminPage
 
         // Корректировка массива по данным плагина Advanced Shipping methods
         unset($shippingMethods['advanced_shipping']);
-        $shippingMethods['advanced_shipping_pickpoint'] = 'PickPoint';
+		// TODO: Сделать это или настройкой или как-то читать из плагина Advanced Shipping
+        $shippingMethods['advanced_shipping_pickpoint'] = __( 'Пункты выдачи заказов', IN_WC_CRM );
 
         return $shippingMethods;
     }
+
+    /**
+     * @const Максимальное число заказов, выбираемых из БД
+     */
+    const ORDER_LIMIT = 250;
+
 
     /**
      * Обрабатывает AJAX запрос данных
@@ -145,7 +186,7 @@ class PickPoint extends BaseAdminPage
         // Параметры запроса
         // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
         $args = array(
-            'limit'     => 100,
+            'limit'     => self::ORDER_LIMIT,
             'orderby'   => 'date',
             'order'     => 'DESC',
             'return'    => 'objects'            
@@ -193,13 +234,12 @@ class PickPoint extends BaseAdminPage
             }
 
             $result[] = array(
-                'checkbox' => '',
                 'id' => $order->get_order_number(),
                 'date' => $order->get_date_created()->date_i18n('d.m.Y'),
                 'customer' => $order->get_formatted_billing_full_name(),
                 'total' => $order->calculate_totals(),
-                'payment' => $order->get_payment_method_title(),
-                'shipping' => $order->get_shipping_method(),
+                'payment_method' => $order->get_payment_method_title(),
+                'shipping_method' => $order->get_shipping_method(),
                 'stock' => 'Склад'
             );
 
@@ -208,4 +248,83 @@ class PickPoint extends BaseAdminPage
         echo json_encode( $result );
         wp_die();
     }
+
+    /**
+     * Обрабатывает AJAX запрос на отправку данных
+     */
+    public function send_orders()
+    {
+        // Требуемый метод доставки
+        $idsString = ( isset( $_POST['ids'] ) ) ? trim( sanitize_text_field( $_POST['ids'] ) ) : '';
+
+        if ( empty( $idsString ) )
+        {
+            esc_html_e( 'Данные для отправки не выбраны. Щелкайте по строкам таблицы для их выделения', IN_WC_CRM );
+            wp_die();            
+        }
+
+        // Параметры удаленного сервера
+        $url = $this->getParam('pickpoint-api-endpoint', '');
+        $login = $this->getParam('pickpoint-api-login', '');
+        $password = $this->getParam('pickpoint-api-password', '');
+        if ( empty( $url ) || empty( $login ) || empty( $password ) )
+        {
+            esc_html_e( 'Для корректной работы необходимо указать настройки расширения Pickpoint!', IN_WC_CRM );
+            wp_die();              
+        }
+
+        // Логин на удаленный сервер
+        $args = array(
+            'timeout'   => 60,
+            'blocking'  => true,   
+            'headers'   => array('Content-Type' => 'application/json'),
+            'body'      => '{ "Login" : "' . $login . '", "Password" : "' . $password . '" }',
+        );
+        $response = wp_remote_post( $url . '/login', $args );
+
+        // проверка ошибки
+        if ( is_wp_error( $response ) ) 
+        {
+            $error_message = $response->get_error_message();
+            echo $error_message . PHP_EOL . 
+                'URL: ' . $url . '/login' . PHP_EOL .
+                'Login: ' . $login . PHP_EOL .
+                'Passsword: ' . $password;
+            wp_die();
+        }     
+        
+        
+        try
+        {
+            $responseObj = json_decode( $response['body'] );
+            if ( $responseObj->ErrorMessage )
+            {
+             echo $responseObj->ErrorMessage;
+             wp_die();               
+            }
+        }
+        catch (\Exception $error)
+        {
+            var_export($response);
+            wp_die();
+        }
+
+
+        // Продолжение следует
+        var_export($responseObj);
+        wp_die();
+
+        $ids = explode(',', $idsString);
+        $args = array(
+            'limit'     => self::ORDER_LIMIT,
+            'return'    => 'objects',
+            'post__in'  => $ids      
+        );
+        $orders = wc_get_orders( $args );
+
+        foreach( $orders as $order )
+        {
+
+        }
+    }    
 }
