@@ -19,22 +19,22 @@ namespace IN_WC_CRM;
         <tr>
             <th scope="row"><label for="pickpoint-api-endpoint"><?php esc_html_e( 'API URL', IN_WC_CRM) ?></label></th>
             <td><input name="pickpoint-api-endpoint" type="url" id="pickpoint-api-endpoint"  style="width:80%"
-                value="<?php $this->getParam( 'pickpoint-api-endpoint', '' ) ?>" ></td>
+                value="<?php echo $this->getParam( 'pickpoint-api-endpoint', '' ) ?>" ></td>
         </tr>
         <tr>
             <th scope="row"><label for="pickpoint-api-login"><?php esc_html_e( 'API Логин', IN_WC_CRM) ?></label></th>
             <td><input name="pickpoint-api-login" type="text" id="pickpoint-api-login"  
-                value="<?php $this->getParam( 'pickpoint-api-login', '' ) ?>" ></td>
+                value="<?php echo $this->getParam( 'pickpoint-api-login', '' ) ?>" ></td>
         </tr>
         <tr>
             <th scope="row"><label for="pickpoint-api-password"><?php esc_html_e( 'API Пароль', IN_WC_CRM) ?></label></th>
             <td><input name="pickpoint-api-password" type="password" id="pickpoint-api-password"  
-                value="<?php $this->getParam( 'pickpoint-api-password', '' ) ?>" ></td>
+                value="<?php echo $this->getParam( 'pickpoint-api-password', '' ) ?>" ></td>
         </tr>
         <tr>
             <th scope="row"><label for="pickpoint-api-ikn"><?php esc_html_e( 'ИКН', IN_WC_CRM) ?></label></th>
             <td><input name="pickpoint-api-ikn" type="text" id="pickpoint-api-ikn"  
-                value="<?php $this->getParam( 'pickpoint-api-ikn', '' ) ?>" ></td>
+                value="<?php echo $this->getParam( 'pickpoint-api-ikn', '' ) ?>" ></td>
         </tr>        
     </tbody>
 </table>

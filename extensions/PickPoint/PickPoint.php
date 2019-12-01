@@ -76,11 +76,11 @@ class PickPoint extends BaseAdminPage
      */
     public function saveSettings()
     {
-        $this->settings['pickpoint-api-endpoint'] = isset( $POST['pickpoint-api-endpoint'] ) ? sanitize_text_field( $_POST['pickpoint-api-endpoint'] ) : '';
-        $this->settings['pickpoint-api-login'] = isset( $POST['pickpoint-api-login'] ) ? sanitize_text_field( $_POST['pickpoint-api-login'] ) : '';
-        $this->settings['pickpoint-api-password'] = isset( $POST['pickpoint-api-password'] ) ? sanitize_text_field( $_POST['pickpoint-api-password'] ) : '';
-        $this->settings['pickpoint-api-ikn'] = isset( $POST['pickpoint-api-ikn'] ) ? sanitize_text_field( $_POST['pickpoint-api-ikn'] ) : '';
-        
+        $this->settings['pickpoint-api-endpoint'] = isset( $_POST['pickpoint-api-endpoint'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-endpoint'] ) ) : '';
+        $this->settings['pickpoint-api-login'] = isset( $_POST['pickpoint-api-login'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-login'] ) )  : '';
+        $this->settings['pickpoint-api-password'] = isset( $_POST['pickpoint-api-password'] ) ? sanitize_text_field( $_POST['pickpoint-api-password'] ) : '';
+        $this->settings['pickpoint-api-ikn'] = isset( $_POST['pickpoint-api-ikn'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-ikn'] ) ) : '';
+        var_dump($this->settings);
         return parent::saveSettings();
     }
 

@@ -177,8 +177,8 @@ class ExtensionManager
             }
             
             // Перерисовываем страницу
-            wp_safe_redirect(  $_SERVER[ 'REQUEST_URI' ], 303 );
-            exit;
+            //wp_safe_redirect(  $_SERVER[ 'REQUEST_URI' ], 303 );
+            //exit;
         }
 
         @include( Plugin::get()->path . 'views/settings.php' );
