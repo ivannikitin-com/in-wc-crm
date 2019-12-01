@@ -81,7 +81,6 @@ class PickPoint extends BaseAdminPage
         $this->settings['pickpoint-api-login'] = isset( $_POST['pickpoint-api-login'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-login'] ) )  : '';
         $this->settings['pickpoint-api-password'] = isset( $_POST['pickpoint-api-password'] ) ? sanitize_text_field( $_POST['pickpoint-api-password'] ) : '';
         $this->settings['pickpoint-api-ikn'] = isset( $_POST['pickpoint-api-ikn'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-ikn'] ) ) : '';
-        var_dump($this->settings);
         return parent::saveSettings();
     }
 
@@ -264,10 +263,56 @@ class PickPoint extends BaseAdminPage
             wp_die();            
         }
 
+        // Параметры удаленного сервера
+        $url = $this->getParam('pickpoint-api-endpoint', '');
+        $login = $this->getParam('pickpoint-api-login', '');
+        $password = $this->getParam('pickpoint-api-password', '');
+        if ( empty( $url ) || empty( $login ) || empty( $password ) )
+        {
+            esc_html_e( 'Для корректной работы необходимо указать настройки расширения Pickpoint!', IN_WC_CRM );
+            wp_die();              
+        }
+
         // Логин на удаленный сервер
+        $args = array(
+            'timeout'   => 60,
+            'blocking'  => true,   
+            'headers'   => array('Content-Type' => 'application/json'),
+            'body'      => '{ "Login" : "' . $login . '", "Password" : "' . $password . '" }',
+        );
+        $response = wp_remote_post( $url . '/login', $args );
+
+        // проверка ошибки
+        if ( is_wp_error( $response ) ) 
+        {
+            $error_message = $response->get_error_message();
+            echo $error_message . PHP_EOL . 
+                'URL: ' . $url . '/login' . PHP_EOL .
+                'Login: ' . $login . PHP_EOL .
+                'Passsword: ' . $password;
+            wp_die();
+        }     
+        
+        
+        try
+        {
+            $responseObj = json_decode( $response['body'] );
+            if ( $responseObj->ErrorMessage )
+            {
+             echo $responseObj->ErrorMessage;
+             wp_die();               
+            }
+        }
+        catch (\Exception $error)
+        {
+            var_export($response);
+            wp_die();
+        }
 
 
-
+        // Продолжение следует
+        var_export($responseObj);
+        wp_die();
 
         $ids = explode(',', $idsString);
         $args = array(
