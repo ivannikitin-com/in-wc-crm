@@ -18,6 +18,12 @@ class BaseAdminPage extends Base implements IAdminPage
      */
     public function __construct()
     {
+        // Родительский конструктор
+        parent::__construct();
+
+        if ( ! $this->isEnabled() ) 
+            return;
+
         // Хук на отрисовку админ страницы
         add_action('admin_head', array( $this, 'getAdminColors') );
     }

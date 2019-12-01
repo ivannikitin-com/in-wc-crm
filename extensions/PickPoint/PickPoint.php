@@ -24,6 +24,9 @@ class PickPoint extends BaseAdminPage
     public function __construct()
     {
         parent::__construct();
+        if ( ! $this->isEnabled() ) 
+            return;  
+
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
 
@@ -51,8 +54,39 @@ class PickPoint extends BaseAdminPage
     }
 
     /**
-     * Возвращает название пункта меню
-     * @return string
+     * Возвращает true если этому расширению требуются настройки
+     * @return bool
+     */
+    public function hasSettings()
+    {
+        return true;
+    }
+
+    /**
+     * Показывает секцию настроек
+     */
+    public function showSettings()
+    {
+        @include( Plugin::get()->path . 'extensions/PickPoint/views/settings.php' );
+    }
+
+    /**
+     * Сохраняет массив настроек
+     * @paran mixed $settings массив настроек
+     */
+    public function saveSettings()
+    {
+        $this->settings['pickpoint-api-endpoint'] = isset( $POST['pickpoint-api-endpoint'] ) ? sanitize_text_field( $_POST['pickpoint-api-endpoint'] ) : '';
+        $this->settings['pickpoint-api-login'] = isset( $POST['pickpoint-api-login'] ) ? sanitize_text_field( $_POST['pickpoint-api-login'] ) : '';
+        $this->settings['pickpoint-api-password'] = isset( $POST['pickpoint-api-password'] ) ? sanitize_text_field( $_POST['pickpoint-api-password'] ) : '';
+        $this->settings['pickpoint-api-ikn'] = isset( $POST['pickpoint-api-ikn'] ) ? sanitize_text_field( $_POST['pickpoint-api-ikn'] ) : '';
+        
+        return parent::saveSettings();
+    }
+
+
+    /**
+     * Подключает скрипты
      */
     public function enqueueScripts()
     {

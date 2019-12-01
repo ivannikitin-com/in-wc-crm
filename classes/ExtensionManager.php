@@ -126,6 +126,10 @@ class ExtensionManager
             if ( in_array( 'IN_WC_CRM\Extensions\IAdminPage' , $interfaces) )  
             {
                 // Это расширение реализует админ.страницу
+
+                if ( ! $extension->isEnabled() ) 
+                    continue;
+                
                 add_submenu_page(
                     $menu_slug,                             // Название (slug) родительского меню
                     $extension->getAdminPageTitle(),        // Текст, который будет использован в теге title на странице
@@ -137,7 +141,15 @@ class ExtensionManager
             }
         }
 
-
+        // Страница настроек
+        add_submenu_page(
+            $menu_slug,                                                 // Название (slug) родительского меню
+            __( 'Настройки', IN_WC_CRM)  . ' ' . Plugin::get()->name,   // Текст, который будет использован в теге title на странице
+            __( 'Настройки', IN_WC_CRM),                                // Текст, который будет использован как называние пункта меню
+            'manage_options',                                           // Возможность пользователя, чтобы иметь доступ к меню
+            IN_WC_CRM . '-settings',                                    // Уникальное название (slug)
+            array( $this, 'showSettings' )                              // Название функции которая будет вызваться, чтобы вывести контент создаваемой страницы
+        );
     }
 
 	/**
@@ -145,6 +157,30 @@ class ExtensionManager
 	 */
     public function adminMenuContent()
     {
-        @include( Plugin::get()->path . 'info.php' );
+        @include( Plugin::get()->path . 'views/info.php' );
     }
+
+	/**
+	 * Вывод контента страницы настроек
+	 */
+    public function showSettings()
+    {
+        // Если была передача, сохраняем все настройки
+        if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' )
+        {
+            // Обрабатываем все расширения и добавляем нужные в меню
+            foreach( $this->extensions as $name => $data )
+            {
+                $extension = $data['obj'];
+                if ( ! is_object( $extension ) ) continue;
+                $extension->saveSettings();               
+            }
+            
+            // Перерисовываем страницу
+            wp_safe_redirect(  $_SERVER[ 'REQUEST_URI' ], 303 );
+            exit;
+        }
+
+        @include( Plugin::get()->path . 'views/settings.php' );
+    }    
 }
