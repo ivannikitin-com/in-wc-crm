@@ -35,6 +35,19 @@ namespace IN_WC_CRM;
             <th scope="row"><label for="pickpoint-api-ikn"><?php esc_html_e( 'ИКН', IN_WC_CRM) ?></label></th>
             <td><input name="pickpoint-api-ikn" type="text" id="pickpoint-api-ikn"  
                 value="<?php echo $this->getParam( 'pickpoint-api-ikn', '' ) ?>" ></td>
-        </tr>        
+        </tr>
+        <tr>
+            <th scope="row"><label for="pickpoint-order-status"><?php esc_html_e( 'Статус заказов для обработки', IN_WC_CRM) ?></label></th>
+            <td>
+                <select name="pickpoint-order-status" id="pickpoint-order-status">
+                <?php
+                    $currentStatus = $this->getParam( 'pickpoint-order-status', 'wc-processing' );
+                    $statuses = wc_get_order_statuses();
+                    foreach ($statuses as $status => $title ): ?>
+                        <option value="<?php echo $status ?>" <?php selected( $status, $currentStatus ); ?>><?php echo $title ?></option>
+                    <?php endforeach ?>
+                </select>    
+            </td>
+        </tr>
     </tbody>
 </table>

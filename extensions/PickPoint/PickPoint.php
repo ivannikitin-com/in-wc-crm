@@ -81,6 +81,7 @@ class PickPoint extends BaseAdminPage
         $this->settings['pickpoint-api-login'] = isset( $_POST['pickpoint-api-login'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-login'] ) )  : '';
         $this->settings['pickpoint-api-password'] = isset( $_POST['pickpoint-api-password'] ) ? sanitize_text_field( $_POST['pickpoint-api-password'] ) : '';
         $this->settings['pickpoint-api-ikn'] = isset( $_POST['pickpoint-api-ikn'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-ikn'] ) ) : '';
+        $this->settings['pickpoint-order-status'] = isset( $_POST['pickpoint-order-status'] ) ? trim(sanitize_text_field( $_POST['pickpoint-order-status'] ) ) : 'wc-processing';
         return parent::saveSettings();
     }
 
@@ -124,7 +125,6 @@ class PickPoint extends BaseAdminPage
         $objectName = 'IN_WC_CRM_Pickpoint';
         $data = array(
             'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
-            'orderStatuses' => wc_get_order_statuses(),
             'shippingMethods' => $this->shippingMethods,
         );
         wp_localize_script( $scriptID, $objectName, $data );
@@ -189,18 +189,12 @@ class PickPoint extends BaseAdminPage
             'limit'     => self::ORDER_LIMIT,
             'orderby'   => 'date',
             'order'     => 'DESC',
-            'return'    => 'objects'            
+            'return'    => 'objects',
+            'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
         );
-
-        $status = ( isset( $_POST['status'] ) ) ? sanitize_text_field( $_POST['status'] ) : '';
-        if ( ! empty( $status ) )
-        {
-            $args['status'] = $status;
-        }
 
         $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? sanitize_text_field( $_POST['dateFrom'] ) : '';
         $dateTo = ( isset( $_POST['dateTo'] ) ) ? sanitize_text_field( $_POST['dateTo'] ) : '';
-
 
         if ( $dateFrom && $dateTo )
         {
@@ -310,7 +304,10 @@ class PickPoint extends BaseAdminPage
         }
 
 
-        // Продолжение следует
+        //         
+
+
+
         var_export($responseObj);
         wp_die();
 
@@ -326,5 +323,5 @@ class PickPoint extends BaseAdminPage
         {
 
         }
-    }    
+    }
 }

@@ -3,15 +3,6 @@
  */
 
 jQuery(function ($) {
-    /* ------------------------------ Статусы заказов ------------------------------ */   
-    var selStatus = $('#status');
-    for (var key in IN_WC_CRM_Pickpoint.orderStatuses){
-        var option = new Option();
-        option.value = key;
-        option.innerHTML = IN_WC_CRM_Pickpoint.orderStatuses[key];
-        selStatus.append(option);
-    }
-
     /* ------------------------------ Методы доставки ------------------------------ */   
     var selStatus = $('#shipping_method');
     for (var key in IN_WC_CRM_Pickpoint.shippingMethods){
