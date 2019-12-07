@@ -49,5 +49,25 @@ namespace IN_WC_CRM;
                 </select>    
             </td>
         </tr>
+        <tr>
+            <th scope="row"><label for="pickpoint-shopOrganization"><?php esc_html_e( 'Организация магазина', IN_WC_CRM) ?></label></th>
+            <td><input name="pickpoint-shopOrganization" type="text" id="pickpoint-shopOrganization"  
+                value="<?php echo $this->getParam( 'pickpoint-shopOrganization', '' ) ?>" ></td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="pickpoint-shopPhone"><?php esc_html_e( 'Телефон магазина', IN_WC_CRM) ?></label></th>
+            <td><input name="pickpoint-shopPhone" type="text" id="pickpoint-shopPhone"  
+                value="<?php echo $this->getParam( 'pickpoint-shopPhone', '' ) ?>" ></td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="pickpoint-shopManagerName"><?php esc_html_e( 'Отвественный менеджер', IN_WC_CRM) ?></label></th>
+            <td><input name="pickpoint-shopManagerName" type="text" id="pickpoint-shopManagerName"  
+                value="<?php echo $this->getParam( 'pickpoint-shopManagerName', '' ) ?>" ></td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="pickpoint-shopComment"><?php esc_html_e( 'Комментарий для ПикПоинта', IN_WC_CRM) ?></label></th>
+            <td><input name="pickpoint-shopComment" type="text" id="pickpoint-shopComment"  
+                value="<?php echo $this->getParam( 'pickpoint-shopComment', '' ) ?>" ></td>
+        </tr>                                
     </tbody>
 </table>
