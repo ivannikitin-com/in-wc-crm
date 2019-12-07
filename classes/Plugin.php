@@ -121,4 +121,24 @@ class Plugin
 		_e( 'В настоящий момент все функции плагина деактивированы.', IN_WC_CRM );
 		echo '</p></div>';
 	}
+
+	/**
+	 * Записывает сообщение в лог, если включена отладка
+	 * @param mixed $message	Сообщение или объект
+	 */
+	public function log( $message )
+	{
+		if ( WP_DEBUG )
+		{
+			if (is_array($message) || is_object($message)) 
+			{
+                error_log( IN_WC_CRM . ': ' . print_r( $message, true ) );
+			} 
+			else 
+			{
+                error_log( IN_WC_CRM . ': ' . $message );
+            }			
+		}
+	}
+
 }
