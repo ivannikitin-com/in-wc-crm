@@ -331,7 +331,7 @@ class PickPoint extends BaseAdminPage
                 'body'      => $orderData,
             );
             $response .= wp_remote_post( $url . '/CreateShipment', $args );       
-
+            Plugin::get()->log('Server Responce:' . $response );
         }
     }
 
@@ -341,6 +341,8 @@ class PickPoint extends BaseAdminPage
     private function createShipment( $order )
     {
         if ( empty( $this->sessionId ) ) return false;
+
+        Plugin::get()->log('createShipment:' . $order );
 
         // Данные
         $requestId = sha1( microtime() . __CLASS__ );   //<Идентификатор запроса, используемый для ответа. Указывайте уникальное число (50 символов)>
@@ -362,9 +364,8 @@ class PickPoint extends BaseAdminPage
 
         // Постомат
         preg_match('/.*([\d]{4}-[\d]{3}).*/', $order->get_shipping_address_1(), $output_array);
-
         $postamatNumber = ( isset($output_array[1] ) ) ? $output_array[1] : '';   
-        $postageType = ( $order->payment_method() == 'cod' ) ? '10003' : '10001';
+        $postageType = ( $order->get_payment_method() == 'cod' ) ? '10003' : '10001';
 
         $senderCityName = $order->get_shipping_city();
         $senderRegionName = $order->get_shipping_state();
@@ -434,7 +435,7 @@ PLACES;
                   "Description": "{$shopName}",
                   "RecipientName": "$clientName",
                   "PostamatNumber": "{$postamatNumber}",
-                  "MobilePhone": "{$$mobilePhone}",
+                  "MobilePhone": "{$mobilePhone}",
                   "Email": "{$email}",
                   "PostageType": "{$postageType}",
                   "GettingType": "<Тип сдачи отправления, (см. таблицу ниже) обязательное поле >",
@@ -477,6 +478,7 @@ PLACES;
             ]
           }
 DATA;
+        Plugin::get()->log('createShipment:' . $data);
         return $data;
     }
 }
