@@ -355,24 +355,26 @@ class PickPoint extends BaseAdminPage
         if ( empty( $ikn ) ) return false;
 
         // Пользователь
-        // TODO: Сделать фильтрацию всех параметров
-        $clientName = ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
-            $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
-            $order->get_billing_last_name() . ' '  . $order->get_billing_first_name();
-        $mobilePhone = $order->get_billing_phone();
-        $email = $order->get_billing_email();
+        $clientName = apply_filters( 'inwccrm_pickpoint_clientName', 
+            ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
+                $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
+                $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
+            $order );
+        $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $order->get_billing_phone(), $order );
+        $email = apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order );
 
         // Заказ
-        $orderId = $order->get_order_number();
-        $orderTitleRus = esc_html__( 'Заказ №', IN_WC_CRM ) . $orderId;
-        $orderTitleEn = esc_html__( 'Order #', IN_WC_CRM ) . $orderId;
-        $sum = $order->get_total();
+        $orderId = apply_filters( 'inwccrm_pickpoint_orderId', $order->get_order_number(), $order );
+        $orderTitleRus = apply_filters( 'inwccrm_pickpoint_orderTitleRus', esc_html__( 'Заказ №', IN_WC_CRM ) . $orderId, $order );
+        $orderTitleEn = apply_filters( 'inwccrm_pickpoint_orderTitleEn', esc_html__( 'Order #', IN_WC_CRM ) . $orderId, $order );
+        $sum = apply_filters( 'inwccrm_pickpoint_sum', $order->get_total(), $order );
 
-        // Доставка
-        $DeliveryVat = apply_filters( 'inwccrm_pickpoint_postamatNumber', 0, $order );
-        $DeliveryFee = apply_filters( 'inwccrm_pickpoint_postamatNumber', 0, $order );
-        $InsuareValue = apply_filters( 'inwccrm_pickpoint_postamatNumber', 0, $order );
-        $DeliveryMode = apply_filters( 'inwccrm_pickpoint_postamatNumber', 0, $order );
+        // Доставка TODO: Сделать чтение налогов из WC
+        $DeliveryVat = apply_filters( 'inwccrm_pickpoint_DeliveryVat', 0, $order );
+        $DeliveryFee = apply_filters( 'inwccrm_pickpoint_DeliveryFee', 0, $order );
+        $InsuareValue = apply_filters( 'inwccrm_pickpoint_InsuareValue', 0, $order );
+        $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 0, $order );
+        $GettingType = apply_filters( 'inwccrm_pickpoint_GettingType', '102', $order );
 
 
         // Постомат
@@ -475,7 +477,7 @@ PLACES;
                   "MobilePhone": "{$mobilePhone}",
                   "Email": "{$email}",
                   "PostageType": "{$postageType}",
-                  "GettingType": "<Тип сдачи отправления, (см. таблицу ниже) обязательное поле >",
+                  "GettingType": "{$GettingType}",
                   "PayType": "1",
                   "Sum": "{$sum}",
                   "PrepaymentSum": "0",
