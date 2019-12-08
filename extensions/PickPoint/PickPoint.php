@@ -81,6 +81,13 @@ class PickPoint extends BaseAdminPage
         $this->settings['pickpoint-api-login'] = isset( $_POST['pickpoint-api-login'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-login'] ) )  : '';
         $this->settings['pickpoint-api-password'] = isset( $_POST['pickpoint-api-password'] ) ? sanitize_text_field( $_POST['pickpoint-api-password'] ) : '';
         $this->settings['pickpoint-api-ikn'] = isset( $_POST['pickpoint-api-ikn'] ) ? trim(sanitize_text_field( $_POST['pickpoint-api-ikn'] ) ) : '';
+        $this->settings['pickpoint-order-status'] = isset( $_POST['pickpoint-order-status'] ) ? trim(sanitize_text_field( $_POST['pickpoint-order-status'] ) ) : 'wc-processing';
+        $this->settings['pickpoint-shopOrganization'] = isset( $_POST['pickpoint-shopOrganization'] ) ? trim(sanitize_text_field( $_POST['pickpoint-shopOrganization'] ) ) : '';
+        $this->settings['pickpoint-shopPhone'] = isset( $_POST['pickpoint-shopPhone'] ) ? trim(sanitize_text_field( $_POST['pickpoint-shopPhone'] ) ) : '';
+        $this->settings['pickpoint-shopManagerName'] = isset( $_POST['pickpoint-shopManagerName'] ) ? trim(sanitize_text_field( $_POST['pickpoint-shopManagerName'] ) ) : '';
+        $this->settings['pickpoint-shopComment'] = isset( $_POST['pickpoint-shopComment'] ) ? trim(sanitize_text_field( $_POST['pickpoint-shopComment'] ) ) : '';
+        
+        
         return parent::saveSettings();
     }
 
@@ -100,12 +107,12 @@ class PickPoint extends BaseAdminPage
         wp_enqueue_style( 'fa-5', Plugin::get()->url . 'asserts/fontawesome-free-5.11.2-web/css/all.css' );
 
         // DataTables
-        $dataTables = IN_WC_CRM . '-datatables';
+        $dataTables = 'DataTables';
         wp_register_script( 
             $dataTables, 
             Plugin::get()->url . 'asserts/DataTables/datatables.min.js', 
             array( 'jquery', 'jquery-ui-autocomplete', 'jquery-ui-datepicker' ),
-            Plugin::get()->version, 
+            '1.10.20', 
             true );
         wp_enqueue_script( $dataTables ); 
         wp_enqueue_style( $dataTables, Plugin::get()->url . 'asserts/DataTables/datatables.min.css' );         
@@ -124,7 +131,6 @@ class PickPoint extends BaseAdminPage
         $objectName = 'IN_WC_CRM_Pickpoint';
         $data = array(
             'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
-            'orderStatuses' => wc_get_order_statuses(),
             'shippingMethods' => $this->shippingMethods,
         );
         wp_localize_script( $scriptID, $objectName, $data );
@@ -175,7 +181,6 @@ class PickPoint extends BaseAdminPage
      */
     const ORDER_LIMIT = 250;
 
-
     /**
      * Обрабатывает AJAX запрос данных
      */
@@ -189,18 +194,12 @@ class PickPoint extends BaseAdminPage
             'limit'     => self::ORDER_LIMIT,
             'orderby'   => 'date',
             'order'     => 'DESC',
-            'return'    => 'objects'            
+            'return'    => 'objects',
+            'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
         );
-
-        $status = ( isset( $_POST['status'] ) ) ? sanitize_text_field( $_POST['status'] ) : '';
-        if ( ! empty( $status ) )
-        {
-            $args['status'] = $status;
-        }
 
         $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? sanitize_text_field( $_POST['dateFrom'] ) : '';
         $dateTo = ( isset( $_POST['dateTo'] ) ) ? sanitize_text_field( $_POST['dateTo'] ) : '';
-
 
         if ( $dateFrom && $dateTo )
         {
@@ -248,6 +247,12 @@ class PickPoint extends BaseAdminPage
         echo json_encode( $result );
         wp_die();
     }
+
+    /**
+     * @var SessionId
+     */
+    private $sessionId;
+
 
     /**
      * Обрабатывает AJAX запрос на отправку данных
@@ -309,11 +314,10 @@ class PickPoint extends BaseAdminPage
             wp_die();
         }
 
+        // Session ID
+        $this->sessionId = $responseObj->SessionId;
 
-        // Продолжение следует
-        var_export($responseObj);
-        wp_die();
-
+        // Запрос выбранных заказов
         $ids = explode(',', $idsString);
         $args = array(
             'limit'     => self::ORDER_LIMIT,
@@ -322,9 +326,200 @@ class PickPoint extends BaseAdminPage
         );
         $orders = wc_get_orders( $args );
 
+        $response = '';
         foreach( $orders as $order )
         {
-
+            $orderData = $this->createShipment( $order );
+            $args = array(
+                'timeout'   => 60,
+                'blocking'  => true,   
+                'headers'   => array('Content-Type' => 'application/json'),
+                'body'      => $orderData,
+            );
+            $response = wp_remote_post( $url . '/CreateShipment', $args );       
+            Plugin::get()->log('Server Responce:' . $response );
         }
-    }    
+    }
+
+    /**
+     * Метод формирует данные для отправки
+     */
+    private function createShipment( $order )
+    {
+        if ( empty( $this->sessionId ) ) return false;
+        //Plugin::get()->log('createShipment order:' . $order );
+
+        // Данные
+        $requestId = apply_filters( 'inwccrm_pickpoint_requestId', sha1( microtime() . __CLASS__ ), $order );   //<Идентификатор запроса, используемый для ответа. Указывайте уникальное число (50 символов)>
+        $ikn =  apply_filters( 'inwccrm_pickpoint_ikn', $this->getParam( 'pickpoint-api-ikn', '' ) ) ; //<ИКН – номер договора (10 символов)>
+        if ( empty( $ikn ) ) return false;
+
+        // Пользователь
+        $clientName = apply_filters( 'inwccrm_pickpoint_clientName', 
+            ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
+                $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
+                $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
+            $order );
+        $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $order->get_billing_phone(), $order );
+        $email = apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order );
+
+        // Заказ
+        $orderId = apply_filters( 'inwccrm_pickpoint_orderId', $order->get_order_number(), $order );
+        $orderTitleRus = apply_filters( 'inwccrm_pickpoint_orderTitleRus', esc_html__( 'Заказ №', IN_WC_CRM ) . $orderId, $order );
+        $orderTitleEn = apply_filters( 'inwccrm_pickpoint_orderTitleEn', esc_html__( 'Order #', IN_WC_CRM ) . $orderId, $order );
+        $sum = apply_filters( 'inwccrm_pickpoint_sum', $order->get_total(), $order );
+
+        // Доставка TODO: Сделать чтение налогов из WC
+        $DeliveryVat = apply_filters( 'inwccrm_pickpoint_DeliveryVat', 0, $order );
+        $DeliveryFee = apply_filters( 'inwccrm_pickpoint_DeliveryFee', 0, $order );
+        $InsuareValue = apply_filters( 'inwccrm_pickpoint_InsuareValue', 0, $order );
+        $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 0, $order );
+        $GettingType = apply_filters( 'inwccrm_pickpoint_GettingType', '102', $order );
+
+
+        // Постомат
+        preg_match('/.*([\d]{4}-[\d]{3}).*/', $order->get_shipping_address_1(), $output_array);
+        $postamatNumber = apply_filters( 'inwccrm_pickpoint_postamatNumber', ( isset($output_array[1] ) ) ? $output_array[1] : '', $order );   
+        $postageType = apply_filters( 'inwccrm_pickpoint_postageType', ( $order->get_payment_method() == 'cod' ) ? '10003' : '10001', $order );
+
+        $senderCityName = apply_filters( 'inwccrm_pickpoint_senderCityName', $order->get_shipping_city(), $order );
+        $senderRegionName = apply_filters( 'inwccrm_pickpoint_senderRegionName', $order->get_shipping_state(), $order );
+
+        // Магазин
+        $shopName = apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) );
+        $shopManagerName = apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) );
+        $shopOrganization = apply_filters( 'inwccrm_pickpoint_shopOrganization', $this->getParam( 'pickpoint-shopOrganization', '' ) );
+        $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $this->getParam( 'pickpoint-shopPhone', '' ) );
+        $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) );
+        
+
+        // The main address pieces: https://wordpress.stackexchange.com/questions/319346/woocommerce-get-physical-store-address
+        $store_address     = apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) );
+        $store_address_2   = apply_filters( 'inwccrm_pickpoint_store_address_2', get_option( 'woocommerce_store_address_2' ) );
+        $store_city        = apply_filters( 'inwccrm_pickpoint_store_city', get_option( 'woocommerce_store_city' ) );
+        $store_postcode    = apply_filters( 'inwccrm_pickpoint_store_postcode', get_option( 'woocommerce_store_postcode' ) );
+
+
+
+        // The country/state
+        $store_raw_country = apply_filters( 'inwccrm_pickpoint_store_raw_country', get_option( 'woocommerce_default_country' ) );
+
+        // Split the country/state
+        $split_country = explode( ":", $store_raw_country );
+        if (! isset( $split_country[1]) ) $split_country[1] = '';
+
+        // Country and state separated:
+        $store_country = apply_filters( 'inwccrm_pickpoint_store_country', $split_country[0] );
+        $store_state   = apply_filters( 'inwccrm_pickpoint_store_state', $split_country[1] );
+
+        $SubEncloses = array();        
+        foreach ($order->get_items() as $item)
+        {
+            if ( ! is_a( $item, 'WC_Order_Item_Product' ) ) continue;
+
+            $product = wc_get_product( $item->get_product_id() );
+            $ProductCode = $product->get_sku();
+            $Name = $item->get_name();
+            $Price = $item->get_subtotal();
+            $Quantity = $item->get_quantity();
+            $Description = '';
+            $Upi = '';
+            $SubEnclose = <<<SUBENCLOSE
+                {
+                    "ProductCode": "{$ProductCode}",
+                    "GoodsCode": "",
+                    "Name": "{$Name}",
+                    "Price": "{$Price}",
+                    "Quantity": "{$Quantity}",
+                    "Vat": "< Ставка НДС по товару >",
+                    "Description": "",
+                    "Upi": "{$ProductCode}"
+                } 
+SUBENCLOSE;
+            array_push( $SubEncloses, $SubEnclose );
+        }
+        $SubEnclosesStr = apply_filters( 'inwccrm_pickpoint_json_SubEncloses', implode(',', $SubEncloses), $order );
+
+        $places = array();
+        $place = <<<PLACES
+            {
+                "BarCode": "",
+                "GCBarCode": "",
+                "CellStorageType": "0",
+                "Width": "",
+                "Height": "",
+                "Depth": "",
+                "Weight": "",
+                "SubEncloses": [
+                    {$SubEnclosesStr}
+                ]
+            }
+PLACES;
+
+        array_push( $places, $place );
+        $placesStr = apply_filters( 'inwccrm_pickpoint_json_places', implode(',', $places), $order );
+
+        $data  = <<<DATA
+        {
+            "SessionId": "{$this->sessionId}",
+            "Sendings": [
+              {
+                "EDTN": "{$requestId}",
+                "IKN": "{$ikn}",
+                "ClientName": "{$clientName}",
+                "TitleRus": "{$orderTitleRus}",
+                "TitleEng": "{$orderTitleEn}",
+                "Invoice": {
+                  "SenderCode": "{$orderId}",
+                  "Description": "{$shopName}",
+                  "RecipientName": "$clientName",
+                  "PostamatNumber": "{$postamatNumber}",
+                  "MobilePhone": "{$mobilePhone}",
+                  "Email": "{$email}",
+                  "PostageType": "{$postageType}",
+                  "GettingType": "{$GettingType}",
+                  "PayType": "1",
+                  "Sum": "{$sum}",
+                  "PrepaymentSum": "0",
+                  "DeliveryVat": "{$DeliveryVat}",
+                  "DeliveryFee": "{$DeliveryFee}",
+                  "InsuareValue": "{$InsuareValue}",
+                  "DeliveryMode": "{$DeliveryMode}",
+                  "SenderCity": {
+                    "CityName": "{$senderCityName}",
+                    "RegionName": "{$senderRegionName}"
+                  },
+                  "ClientReturnAddress": {
+                    "CityName": "{$store_city}",
+                    "RegionName": "{$store_state}",
+                    "Address": "{$store_address} {$store_address_2}",
+                    "FIO": "{$shopManagerName}",
+                    "PostCode": "{$store_postcode}",
+                    "Organisation": "{$shopOrganization}",
+                    "PhoneNumber": "{$shopPhone}",
+                    "Comment": "{$shopComment}"
+                  },
+                  "UnclaimedReturnAddress": {
+                    "CityName": "{$store_city}",
+                    "RegionName": "{$store_state}",
+                    "Address": "{$store_address} {$store_address_2}",
+                    "FIO": "{$shopManagerName}",
+                    "PostCode": "{$store_postcode}",
+                    "Organisation": "{$shopOrganization}",
+                    "PhoneNumber": "{$shopPhone}",
+                    "Comment": "{$shopComment}"
+                  },
+                  "Places": [
+                    {$placesStr}
+                  ]
+                }
+              }
+            ]
+          }
+DATA;
+        
+        $data = apply_filters( 'inwccrm_pickpoint_json_shipment', $data, $order);
+        Plugin::get()->log('createShipment:' . $data);
+        return $data;
+    }
 }

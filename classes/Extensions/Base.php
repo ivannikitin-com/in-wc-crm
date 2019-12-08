@@ -91,9 +91,9 @@ class Base implements IExtension
      */
     public function getParam( $paramName, $default = '' )
     {
-        // Если параметра нет в настройках, вернем false
+        // Если параметра нет в настройках, вернем default
         if ( ! array_key_exists( $paramName, $this->settings ) )
-            return false;
+            return $default;
 
         // Если параметр пустой вернем дефолтовое значение
         if ( empty( $this->settings[ $paramName ] ) && ! is_bool( $this->settings[ $paramName ] ) )

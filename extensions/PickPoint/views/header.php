@@ -3,7 +3,7 @@
  * Отрисовка шапки страницы списка заказов
  * Выполняется в контексте метода PickPoint::renderAdminPageContent()
  */
-$currentURL = $_REQUEST[ 'REQUEST_URI' ];
+$currentURL = $_SERVER[ 'REQUEST_URI' ];
 $baseURL = preg_replace('/(\&view=[a-z0-9_-]*)\&?/', '', $currentURL)
 ?>
 <header>

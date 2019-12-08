@@ -8,27 +8,18 @@
 ?>
 <section id="pickpointControls" style="text-align: center">
   <span>
-      <label for="status"><?php esc_html_e( 'Статус заказов', IN_WC_CRM ); ?></label>
-      <select id="status">
-        <option value=""><?php esc_html_e( 'Все статусы', IN_WC_CRM ); ?></option>
-      </select>
-  </span>
-
-  <span>
-      <label for="shipping_method"><?php esc_html_e( 'Статус заказов', IN_WC_CRM ); ?></label>
-      <select id="shipping_method">
-        <option value=""><?php esc_html_e( 'Все методы', IN_WC_CRM ); ?></option>
-      </select>
-  </span>
-
-  <br>
-
-  <span>
       <label for="dateFrom"><?php esc_html_e( 'Начальная дата', IN_WC_CRM ); ?></label>
       <input id="dateFrom" type="text" class="datePickers">
 
       <label for="dateTo"><?php esc_html_e( 'Конечная дата', IN_WC_CRM ); ?></label>
       <input id="dateTo" type="text" class="datePickers">
+  </span>
+  <br>
+  <span>
+      <label for="shipping_method"><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></label>
+      <select id="shipping_method">
+        <option value=""><?php esc_html_e( 'Все методы', IN_WC_CRM ); ?></option>
+      </select>
   </span>
 
   <button id="btnLoadOrders"><?php esc_html_e( 'Найти заказы', IN_WC_CRM ); ?></button>
