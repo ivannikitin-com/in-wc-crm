@@ -337,8 +337,12 @@ class PickPoint extends BaseAdminPage
                 'body'      => $orderData,
             );
             $response = wp_remote_post( $url . '/CreateShipment', $args );       
-            Plugin::get()->log('Server Responce:');
-			Plugin::get()->log($response );
+            Plugin::get()->log( 'Server Responce:' );
+            Plugin::get()->log( $response );
+
+
+            var_export( $response );
+            wp_die();           
         }
     }
 
@@ -425,7 +429,7 @@ class PickPoint extends BaseAdminPage
             $Quantity = $item->get_quantity();
             $Description = '';
 			$vat = '0';
-            $Upi = '';
+            $Upi = $product->get_id();
             $SubEnclose = <<<SUBENCLOSE
                 {
                     "ProductCode": "{$ProductCode}",
@@ -434,8 +438,8 @@ class PickPoint extends BaseAdminPage
                     "Price": "{$Price}",
                     "Quantity": "{$Quantity}",
                     "Vat": "{$vat}",
-                    "Description": "",
-                    "Upi": "{$ProductCode}"
+                    "Description": "{$Description}",
+                    "Upi": "{$Upi}"
                 } 
 SUBENCLOSE;
             array_push( $SubEncloses, $SubEnclose );
@@ -446,12 +450,7 @@ SUBENCLOSE;
         $place = <<<PLACES
             {
                 "BarCode": "",
-                "GCBarCode": "",
                 "CellStorageType": "0",
-                "Width": "",
-                "Height": "",
-                "Depth": "",
-                "Weight": "",
                 "SubEncloses": [
                     {$SubEnclosesStr}
                 ]
