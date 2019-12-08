@@ -337,7 +337,8 @@ class PickPoint extends BaseAdminPage
                 'body'      => $orderData,
             );
             $response = wp_remote_post( $url . '/CreateShipment', $args );       
-            Plugin::get()->log('Server Responce:' . $response );
+            Plugin::get()->log('Server Responce:');
+			Plugin::get()->log($response );
         }
     }
 
@@ -423,6 +424,7 @@ class PickPoint extends BaseAdminPage
             $Price = $item->get_subtotal();
             $Quantity = $item->get_quantity();
             $Description = '';
+			$vat = '0';
             $Upi = '';
             $SubEnclose = <<<SUBENCLOSE
                 {
@@ -431,7 +433,7 @@ class PickPoint extends BaseAdminPage
                     "Name": "{$Name}",
                     "Price": "{$Price}",
                     "Quantity": "{$Quantity}",
-                    "Vat": "< Ставка НДС по товару >",
+                    "Vat": "{$vat}",
                     "Description": "",
                     "Upi": "{$ProductCode}"
                 } 
