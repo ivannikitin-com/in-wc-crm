@@ -198,8 +198,8 @@ class PickPoint extends BaseAdminPage
             'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
         );
 
-        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? sanitize_text_field( $_POST['dateFrom'] ) : '';
-        $dateTo = ( isset( $_POST['dateTo'] ) ) ? sanitize_text_field( $_POST['dateTo'] ) : '';
+        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trum( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
+        $dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
 
         if ( $dateFrom && $dateTo )
         {

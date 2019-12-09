@@ -78,14 +78,14 @@ jQuery(function ($) {
         }
 
          // Дата конца
-         var dateTo = $('#dateTo').val().trim();
+         var dateTo = $('#dateTo').val();
          if (dateTo !== '' )
          {
              ajaxRequest['dateTo'] = rusDateToTimeStamp(dateTo);
          }
 
          // Метод доставки
-         var shipping_method = $('#shipping_method').val().trim();
+         var shipping_method = $('#shipping_method').val();
          if (shipping_method !== '' )
          {
              ajaxRequest['shipping_method'] = shipping_method;
