@@ -468,8 +468,8 @@ PLACES;
                 "EDTN": "{$requestId}",
                 "IKN": "{$ikn}",
                 "ClientName": "{$clientName}",
-                "TitleRus": "{$orderTitleRus}",
-                "TitleEng": "{$orderTitleEn}",
+                "TittleRus": "{$orderTitleRus}",
+                "TittleEng": "{$orderTitleEn}",
                 "Invoice": {
                   "SenderCode": "{$orderId}",
                   "Description": "{$shopName}",
