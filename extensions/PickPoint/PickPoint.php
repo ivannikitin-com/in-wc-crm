@@ -239,7 +239,7 @@ class PickPoint extends BaseAdminPage
                 'total' => $order->calculate_totals(),
                 'payment_method' => $order->get_payment_method_title(),
                 'shipping_method' => $order->get_shipping_method(),
-                'stock' => 'Склад'
+                'shipping_cost' => $order->get_shipping_total()
             );
 
         }

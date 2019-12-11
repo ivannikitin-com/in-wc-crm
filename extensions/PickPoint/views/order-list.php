@@ -43,7 +43,7 @@
                 <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Стоимость доставки', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
             </tr>
         </thead>
@@ -67,7 +67,7 @@
                 <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
+                <th><?php esc_html_e( 'Стоимость доставки', IN_WC_CRM ); ?></th>
                 <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
             </tr>
         </tfoot>

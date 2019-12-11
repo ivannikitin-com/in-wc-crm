@@ -28,7 +28,7 @@ jQuery(function ($) {
                 { "data": "total" },
                 { "data": "payment_method" },
                 { "data": "shipping_method" },
-                { "data": "stock" },
+                { "data": "shipping_cost" },
                 { "data":  null, defaultContent: '<button class="btnViewOrder" title="' + IN_WC_CRM_Pickpoint.viewOrderTitle + '"><i class="fas fa-eye"></i></button>' }
             ]
         });
