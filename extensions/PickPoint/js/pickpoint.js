@@ -35,7 +35,7 @@ jQuery(function ($) {
 
         $('#orderTable tbody').on( 'click', 'tr', function (e) {
             if (e.srcElement.tagName == 'BUTTON' || e.srcElement.tagName == 'I'){
-                orderId = $(e.srcElement).parents('tr')[0].cells[1].innerHTML;
+                orderId = $(e.srcElement).parents('tr')[0].cells[0].innerHTML;
                 location.assign('/wp-admin/post.php?action=edit&post=' + orderId);
             }
             else{
