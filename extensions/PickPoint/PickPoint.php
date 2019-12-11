@@ -198,7 +198,7 @@ class PickPoint extends BaseAdminPage
             'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
         );
 
-        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trum( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
+        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
         $dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
 
         if ( $dateFrom && $dateTo )
@@ -326,7 +326,8 @@ class PickPoint extends BaseAdminPage
         );
         $orders = wc_get_orders( $args );
 
-        $response = '';
+        $response = null;
+        $responseStr = '';		
         foreach( $orders as $order )
         {
             $orderData = $this->createShipment( $order );
@@ -341,9 +342,34 @@ class PickPoint extends BaseAdminPage
             Plugin::get()->log( $response );
 
 
-            var_export( $response );
-            wp_die();           
+			try
+			{
+				$responseObj = json_decode( $response['body'] );
+				Plugin::get()->log( $responseObj );
+				if ( $responseObj )
+				{
+				 	$responseStr .= ( $responseObj->CreatedSendings ) ? 
+						'Отправление создано '  . implode(',', $responseObj->CreatedSendings ) : '';
+					
+					if ( $responseObj->RejectedSendings )
+					{
+						foreach($responseObj->RejectedSendings as $error )
+						{
+							$responseStr .= $error->ErrorMessage .  ' ' . $error->SenderCode . PHP_EOL;
+						}
+					}
+				$responseStr .= PHP_EOL;	
+				}
+			}
+			catch (\Exception $error)
+			{
+				 $responseStr = var_export( $response, true );
+				
+			}
         }
+		
+		echo $responseStr;
+		wp_die();
     }
 
     /**

@@ -71,7 +71,7 @@ jQuery(function ($) {
         }
 
         // Дата начала
-        var dateFrom = $('#dateFrom').val().trim();
+        var dateFrom = $('#dateFrom').val();
         if (dateFrom !== '' )
         {
             ajaxRequest['dateFrom'] = rusDateToTimeStamp(dateFrom);
@@ -100,6 +100,7 @@ jQuery(function ($) {
         });
         
         function rusDateToTimeStamp( dateStr ){
+			dateStr += ''; // Явное преобразование к строке
             return new Date( dateStr.replace( /(\d{2})\.(\d{2})\.(\d{4})/, "$2/$1/$3") ).getTime() / 1000;
         }
     }
