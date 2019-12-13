@@ -191,7 +191,7 @@ class PickPoint extends BaseAdminPage
         // Параметры запроса
         // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
         $args = array(
-            'limit'     => self::ORDER_LIMIT,
+            'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
             'orderby'   => 'date',
             'order'     => 'DESC',
             'return'    => 'objects',
@@ -233,13 +233,13 @@ class PickPoint extends BaseAdminPage
             }
 
             $result[] = array(
-                'id' => $order->get_order_number(),
-                'date' => $order->get_date_created()->date_i18n('d.m.Y'),
-                'customer' => $order->get_formatted_billing_full_name(),
-                'total' => $order->calculate_totals(),
-                'payment_method' => $order->get_payment_method_title(),
-                'shipping_method' => $order->get_shipping_method(),
-                'shipping_cost' => $order->get_shipping_total()
+                'id' => apply_filters( 'inwccrm_pickpoint_datatable_id', $order->get_order_number(), $order ),
+                'date' => apply_filters( 'inwccrm_pickpoint_datatable_date', $order->get_date_created()->date_i18n('d.m.Y'), $order ),
+                'customer' => apply_filters( 'inwccrm_pickpoint_datatable_customer', $order->get_formatted_billing_full_name(), $order ),
+                'total' => apply_filters( 'inwccrm_pickpoint_datatable_total', $order->calculate_totals(), $order ),
+                'payment_method' => apply_filters( 'inwccrm_pickpoint_datatable_payment_method', $order->get_payment_method_title(), $order ),
+                'shipping_method' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_method', $order->get_shipping_method(), $order ),
+                'shipping_cost' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_cost', $order->get_shipping_total(), $order )
             );
 
         }

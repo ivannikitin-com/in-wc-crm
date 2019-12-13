@@ -2,7 +2,19 @@
 Производит передачу реестров заказов для отправки по API PickPoint.
 
 ## Фильтры и хуки
+### Данные в DataTable (таблице данных заказов)
+Выполняется для каждого ряда
+* `inwccrm_pickpoint_datatable_id` -- ID заказа
+* `inwccrm_pickpoint_datatable_date` -- Дата заказа
+* `inwccrm_pickpoint_datatable_customer` -- Клиент
+* `inwccrm_pickpoint_datatable_total` -- Общая стоиомость заказа
+* `inwccrm_pickpoint_datatable_payment_method` -- Способ обплаты
+* `inwccrm_pickpoint_datatable_shipping_method` -- Метод доставки
+* `inwccrm_pickpoint_datatable_shipping_cost` -- Стоимость доставки
+
+
 ### Параметры запроса
+* `inwccrm_pickpoint_datatable_order_limit` -- Число запоащшиваемых строк из БД
 * `inwccrm_pickpoint_requestId` -- Идентификатор запроса, используемый для ответа
 * `inwccrm_pickpoint_ikn` -- ИКН номер договора (10 символов)
 
