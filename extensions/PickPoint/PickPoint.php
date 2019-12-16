@@ -391,7 +391,9 @@ class PickPoint extends BaseAdminPage
                 $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
                 $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
             $order );
-        $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $order->get_billing_phone(), $order );
+
+        $mobilePhone = preg_replace('[\s\-\(\)\.]', '', $order->get_billing_phone() );
+        $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $mobilePhone, $order );
         $email = apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order );
 
         // Заказ
