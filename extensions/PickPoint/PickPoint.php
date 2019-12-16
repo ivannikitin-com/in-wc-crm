@@ -404,8 +404,8 @@ class PickPoint extends BaseAdminPage
         $DeliveryVat = apply_filters( 'inwccrm_pickpoint_DeliveryVat', 0, $order );
         $DeliveryFee = apply_filters( 'inwccrm_pickpoint_DeliveryFee', 0, $order );
         $InsuareValue = apply_filters( 'inwccrm_pickpoint_InsuareValue', 0, $order );
-        $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 0, $order );
-        $GettingType = apply_filters( 'inwccrm_pickpoint_GettingType', '102', $order );
+        $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 1, $order );
+        $GettingType = apply_filters( 'inwccrm_pickpoint_GettingType', '101', $order );
 
 
         // Постомат
@@ -454,7 +454,6 @@ class PickPoint extends BaseAdminPage
             $Price = $item->get_subtotal();
             $Quantity = $item->get_quantity();
             $Description = '';
-			$vat = '0';
             $Upi = $product->get_id();
             $SubEnclose = <<<SUBENCLOSE
                 {
@@ -463,7 +462,7 @@ class PickPoint extends BaseAdminPage
                     "Name": "{$Name}",
                     "Price": "{$Price}",
                     "Quantity": "{$Quantity}",
-                    "Vat": "{$vat}",
+                    "Vat": null,
                     "Description": "{$Description}",
                     "Upi": "{$Upi}"
                 } 
