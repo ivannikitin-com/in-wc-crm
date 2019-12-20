@@ -337,9 +337,11 @@ class PickPoint extends BaseAdminPage
                 'headers'   => array('Content-Type' => 'application/json'),
                 'body'      => $orderData,
             );
+            
+            // Запрос CreateShipment
+            Plugin::get()->log( 'CreateShipment: Server Request:' ); Plugin::get()->log( $args );
             $response = wp_remote_post( $url . '/CreateShipment', $args );       
-            Plugin::get()->log( 'Server Responce:' );
-            Plugin::get()->log( $response );
+            Plugin::get()->log( 'CreateShipment: Server Responce:' ); Plugin::get()->log( $response );
 
 
 			try
@@ -349,7 +351,7 @@ class PickPoint extends BaseAdminPage
 				if ( $responseObj )
 				{
 				 	$responseStr .= ( $responseObj->CreatedSendings ) ? 
-						'Отправление создано '  . implode(',', $responseObj->CreatedSendings ) : '';
+                     __( 'Отправление создано', IN_WC_CRM ) . ': '  . implode(',', $responseObj->CreatedSendings ) : '';
 					
 					if ( $responseObj->RejectedSendings )
 					{
@@ -363,9 +365,42 @@ class PickPoint extends BaseAdminPage
 			}
 			catch (\Exception $error)
 			{
-				 $responseStr = var_export( $response, true );
+                 $responseStr = __( 'Ошибка получения данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
+                 Plugin::get()->log( __( 'Ошибка получения данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
 				
 			}
+        }
+
+        // Расшифровка ответа и запись в заказы
+        try
+        {
+            // Успешные отправления
+            foreach ( $responseObj->CreatedSendings as $sending )
+            {
+                $currentOrder = new \WC_Order( $sending->SenderCode );
+                $currentOrder->add_order_note( 
+                    __( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+                    __( 'Отправление создано', IN_WC_CRM ) . ': ' . 
+                    $sending->InvoiceNumber
+                );
+                $currentOrder->add_meta_data( __( 'Pikpoint InvoiceNumber', IN_WC_CRM ),  $sending->InvoiceNumber );
+            }
+
+            // Ошибочные отправления
+            foreach ( $responseObj->RejectedSendings as $sending )
+            {
+                $currentOrder = new \WC_Order( $sending->SenderCode );
+                $currentOrder->add_order_note( 
+                    __( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+                    __( 'Ошибка', IN_WC_CRM ) . ': ' . 
+                    $sending->ErrorMessage
+                );
+            }            
+        }
+        catch (\Exception $error)
+        {
+            $responseStr = __( 'Ошибка записи данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
+            Plugin::get()->log( __( 'Ошибка записи данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
         }
 		
 		echo $responseStr;
