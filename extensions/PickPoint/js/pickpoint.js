@@ -29,21 +29,15 @@ jQuery(function ($) {
                 { "data": "payment_method" },
                 { "data": "shipping_method" },
                 { "data": "shipping_cost" },
-                { "data":  null, defaultContent: '<button class="btnViewOrder" title="' + IN_WC_CRM_Pickpoint.viewOrderTitle + '"><i class="fas fa-eye"></i></button>' }
+                { "data":  null, "render": function(data,type,row) { 
+                    return '<a href="/wp-admin/post.php?action=edit&post=' + data["id"] + 
+                        '" class="btnViewOrder" title="' + IN_WC_CRM_Pickpoint.viewOrderTitle + 
+                        '" target="_blank"><i class="fas fa-eye"></i></a>';
+                    } 
+                }
             ]
         });
 
-        $('#orderTable tbody').on( 'click', 'tr', function (e) {
-            if (e.srcElement.tagName == 'BUTTON' || e.srcElement.tagName == 'I'){
-                orderId = $(e.srcElement).parents('tr')[0].cells[0].innerHTML;
-                location.assign('/wp-admin/post.php?action=edit&post=' + orderId);
-            }
-            else{
-                $(this).toggleClass('selected');
-            }
-            
-        } );
-    
     /* --------------------------------- Кнопки  ------------------------------- */    
     $('#btnLoadOrders').on('click', function(){
         loadOrders();
