@@ -21,6 +21,7 @@ jQuery(function ($) {
             "language": {
                 'url': '//cdn.datatables.net/plug-ins/1.10.20/i18n/Russian.json'
             },
+			"pageLength": IN_WC_CRM_Pickpoint.pageLength,
             "columns": [
                 { "data": "id" },
                 { "data": "date" },
@@ -37,6 +38,11 @@ jQuery(function ($) {
                 }
             ]
         });
+	
+	// Выбор рядов
+	$('#orderTable tbody').on( 'click', 'tr', function () {
+        $(this).toggleClass('selected');
+    });
 
     /* --------------------------------- Кнопки  ------------------------------- */    
     $('#btnLoadOrders').on('click', function(){

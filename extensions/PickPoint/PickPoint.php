@@ -132,6 +132,7 @@ class PickPoint extends BaseAdminPage
         $data = array(
             'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
             'shippingMethods' => apply_filters( 'inwccrm_pickpoint_header_shipping_methods', $this->shippingMethods ),
+            'pageLength' => apply_filters( 'inwccrm_pickpoint_datatable_page_length', 10 ),			
         );
         wp_localize_script( $scriptID, $objectName, $data );
 
