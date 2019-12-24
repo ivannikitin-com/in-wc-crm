@@ -440,7 +440,7 @@ END_OF_PACKET;
                 $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
             $order );
 
-        $mobilePhone = preg_replace('[\s\-\(\)\.]', '', $order->get_billing_phone() );
+        $mobilePhone = preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() );
         $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $mobilePhone, $order );
         $email = apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order );
 
@@ -457,7 +457,6 @@ END_OF_PACKET;
         $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 1, $order );
         $GettingType = apply_filters( 'inwccrm_pickpoint_GettingType', '101', $order );
 
-
         // Постомат
         preg_match('/.*([\d]{4}-[\d]{3}).*/', $order->get_shipping_address_1(), $output_array);
         $postamatNumber = apply_filters( 'inwccrm_pickpoint_postamatNumber', ( isset($output_array[1] ) ) ? $output_array[1] : '', $order );   
@@ -473,14 +472,11 @@ END_OF_PACKET;
         $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $this->getParam( 'pickpoint-shopPhone', '' ) );
         $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) );
         
-
         // The main address pieces: https://wordpress.stackexchange.com/questions/319346/woocommerce-get-physical-store-address
         $store_address     = apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) );
         $store_address_2   = apply_filters( 'inwccrm_pickpoint_store_address_2', get_option( 'woocommerce_store_address_2' ) );
         $store_city        = apply_filters( 'inwccrm_pickpoint_store_city', get_option( 'woocommerce_store_city' ) );
         $store_postcode    = apply_filters( 'inwccrm_pickpoint_store_postcode', get_option( 'woocommerce_store_postcode' ) );
-
-
 
         // The country/state
         $store_raw_country = apply_filters( 'inwccrm_pickpoint_store_raw_country', get_option( 'woocommerce_default_country' ) );
