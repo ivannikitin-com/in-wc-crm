@@ -299,7 +299,7 @@ class PickPoint extends BaseAdminPage
             wp_die();
         }     
         
-        
+        // Расшифровываем ответ
         try
         {
             $responseObj = json_decode( $response['body'] );
@@ -321,55 +321,67 @@ class PickPoint extends BaseAdminPage
         // Запрос выбранных заказов
         $ids = explode(',', $idsString);
         $args = array(
-            'limit'     => self::ORDER_LIMIT,
+            'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
             'return'    => 'objects',
             'post__in'  => $ids      
         );
         $orders = wc_get_orders( $args );
 
-        $response = null;
-        $responseStr = '';		
+        // Подготаовливаем JSON данные
+        $sendings = array();
         foreach( $orders as $order )
         {
-            $orderData = $this->createShipment( $order );
-            $args = array(
-                'timeout'   => 60,
-                'blocking'  => true,   
-                'headers'   => array('Content-Type' => 'application/json'),
-                'body'      => $orderData,
-            );
+            $sendings[] = $this->createShipment( $order );
+        }
+        $sendingsStr = implode( ',', $sendings );
+
+        // Пакет для отправки
+        $orderData = <<<END_OF_PACKET
+        {
+            "SessionId": "{$this->sessionId}",
+            "Sendings": [{$sendingsStr}]
+        }
+END_OF_PACKET;
+
+        // Формируем запрос
+        $response = null;
+        $responseStr = '';	
+        $args = array(
+            'timeout'   => 60,
+            'blocking'  => true,   
+            'headers'   => array('Content-Type' => 'application/json'),
+            'body'      => $orderData,
+        );
+
+        // Запрос CreateShipment
+        Plugin::get()->log( 'CreateShipment: Server Request:' ); Plugin::get()->log( $args );
+        $response = wp_remote_post( $url . '/CreateShipment', $args );       
+        Plugin::get()->log( 'CreateShipment: Server Responce:' ); Plugin::get()->log( $response );
+
+        try
+        {
+            $responseObj = json_decode( $response['body'] );
+            Plugin::get()->log( $responseObj );
+            if ( $responseObj )
+            {
+                $responseStr .= ( $responseObj->CreatedSendings ) ? 
+                    __( 'Отправление создано', IN_WC_CRM ) . ': '  . implode(',', $responseObj->CreatedSendings ) : '';
+                
+                if ( $responseObj->RejectedSendings )
+                {
+                    foreach($responseObj->RejectedSendings as $error )
+                    {
+                        $responseStr .= $error->ErrorMessage .  ' ' . $error->SenderCode . PHP_EOL;
+                    }
+                }
+            $responseStr .= PHP_EOL;	
+            }
+        }
+        catch (\Exception $error)
+        {
+                $responseStr .= __( 'Ошибка получения данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
+                Plugin::get()->log( __( 'Ошибка получения данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
             
-            // Запрос CreateShipment
-            Plugin::get()->log( 'CreateShipment: Server Request:' ); Plugin::get()->log( $args );
-            $response = wp_remote_post( $url . '/CreateShipment', $args );       
-            Plugin::get()->log( 'CreateShipment: Server Responce:' ); Plugin::get()->log( $response );
-
-
-			try
-			{
-				$responseObj = json_decode( $response['body'] );
-				Plugin::get()->log( $responseObj );
-				if ( $responseObj )
-				{
-				 	$responseStr .= ( $responseObj->CreatedSendings ) ? 
-                     __( 'Отправление создано', IN_WC_CRM ) . ': '  . implode(',', $responseObj->CreatedSendings ) : '';
-					
-					if ( $responseObj->RejectedSendings )
-					{
-						foreach($responseObj->RejectedSendings as $error )
-						{
-							$responseStr .= $error->ErrorMessage .  ' ' . $error->SenderCode . PHP_EOL;
-						}
-					}
-				$responseStr .= PHP_EOL;	
-				}
-			}
-			catch (\Exception $error)
-			{
-                 $responseStr = __( 'Ошибка получения данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
-                 Plugin::get()->log( __( 'Ошибка получения данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
-				
-			}
         }
 
         // Расшифровка ответа и запись в заказы
@@ -400,7 +412,7 @@ class PickPoint extends BaseAdminPage
         }
         catch (\Exception $error)
         {
-            $responseStr = __( 'Ошибка записи данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
+            $responseStr .= __( 'Ошибка записи данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
             Plugin::get()->log( __( 'Ошибка записи данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
         }
 		
@@ -524,10 +536,7 @@ PLACES;
         $placesStr = apply_filters( 'inwccrm_pickpoint_json_places', implode(',', $places), $order );
 
         $data  = <<<DATA
-        {
-            "SessionId": "{$this->sessionId}",
-            "Sendings": [
-              {
+            {
                 "EDTN": "{$requestId}",
                 "IKN": "{$ikn}",
                 "ClientName": "{$clientName}",
@@ -577,9 +586,7 @@ PLACES;
                     {$placesStr}
                   ]
                 }
-              }
-            ]
-          }
+            }
 DATA;
         
         $data = apply_filters( 'inwccrm_pickpoint_json_shipment', $data, $order);
