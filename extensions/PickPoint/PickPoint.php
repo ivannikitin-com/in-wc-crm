@@ -469,7 +469,8 @@ END_OF_PACKET;
         $shopName = apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) );
         $shopManagerName = apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) );
         $shopOrganization = apply_filters( 'inwccrm_pickpoint_shopOrganization', $this->getParam( 'pickpoint-shopOrganization', '' ) );
-        $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $this->getParam( 'pickpoint-shopPhone', '' ) );
+        $shopPhone = preg_replace('/[\s\-\(\)\.]/', '', $this->getParam( 'pickpoint-shopPhone', '' ) );
+        $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $shopPhone  );
         $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) );
         
         // The main address pieces: https://wordpress.stackexchange.com/questions/319346/woocommerce-get-physical-store-address
