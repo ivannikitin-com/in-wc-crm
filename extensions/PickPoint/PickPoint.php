@@ -131,7 +131,9 @@ class PickPoint extends BaseAdminPage
         $objectName = 'IN_WC_CRM_Pickpoint';
         $data = array(
             'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
-            'shippingMethods' => $this->shippingMethods,
+            'noRowsSelected' => __( 'Необходимо выбрать один или несколько заказов', IN_WC_CRM ),
+            'shippingMethods' => apply_filters( 'inwccrm_pickpoint_header_shipping_methods', $this->shippingMethods ),
+            'pageLength' => apply_filters( 'inwccrm_pickpoint_datatable_page_length', 10 ),			
         );
         wp_localize_script( $scriptID, $objectName, $data );
 
@@ -191,15 +193,15 @@ class PickPoint extends BaseAdminPage
         // Параметры запроса
         // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
         $args = array(
-            'limit'     => self::ORDER_LIMIT,
+            'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
             'orderby'   => 'date',
             'order'     => 'DESC',
             'return'    => 'objects',
             'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
         );
 
-        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? sanitize_text_field( $_POST['dateFrom'] ) : '';
-        $dateTo = ( isset( $_POST['dateTo'] ) ) ? sanitize_text_field( $_POST['dateTo'] ) : '';
+        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
+        $dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
 
         if ( $dateFrom && $dateTo )
         {
@@ -233,13 +235,13 @@ class PickPoint extends BaseAdminPage
             }
 
             $result[] = array(
-                'id' => $order->get_order_number(),
-                'date' => $order->get_date_created()->date_i18n('d.m.Y'),
-                'customer' => $order->get_formatted_billing_full_name(),
-                'total' => $order->calculate_totals(),
-                'payment_method' => $order->get_payment_method_title(),
-                'shipping_method' => $order->get_shipping_method(),
-                'stock' => 'Склад'
+                'id' => apply_filters( 'inwccrm_pickpoint_datatable_id', $order->get_order_number(), $order ),
+                'date' => apply_filters( 'inwccrm_pickpoint_datatable_date', $order->get_date_created()->date_i18n('d.m.Y'), $order ),
+                'customer' => apply_filters( 'inwccrm_pickpoint_datatable_customer', $order->get_formatted_billing_full_name(), $order ),
+                'total' => apply_filters( 'inwccrm_pickpoint_datatable_total', $order->calculate_totals(), $order ),
+                'payment_method' => apply_filters( 'inwccrm_pickpoint_datatable_payment_method', $order->get_payment_method_title(), $order ),
+                'shipping_method' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_method', $order->get_shipping_method(), $order ),
+                'shipping_cost' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_cost', $order->get_shipping_total(), $order )
             );
 
         }
@@ -298,7 +300,7 @@ class PickPoint extends BaseAdminPage
             wp_die();
         }     
         
-        
+        // Расшифровываем ответ
         try
         {
             $responseObj = json_decode( $response['body'] );
@@ -320,25 +322,103 @@ class PickPoint extends BaseAdminPage
         // Запрос выбранных заказов
         $ids = explode(',', $idsString);
         $args = array(
-            'limit'     => self::ORDER_LIMIT,
+            'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
             'return'    => 'objects',
             'post__in'  => $ids      
         );
         $orders = wc_get_orders( $args );
 
-        $response = '';
+        // Подготаовливаем JSON данные
+        $sendings = array();
         foreach( $orders as $order )
         {
-            $orderData = $this->createShipment( $order );
-            $args = array(
-                'timeout'   => 60,
-                'blocking'  => true,   
-                'headers'   => array('Content-Type' => 'application/json'),
-                'body'      => $orderData,
-            );
-            $response = wp_remote_post( $url . '/CreateShipment', $args );       
-            Plugin::get()->log('Server Responce:' . $response );
+            $sendings[] = $this->createShipment( $order );
         }
+        $sendingsStr = implode( ',', $sendings );
+
+        // Пакет для отправки
+        $orderData = <<<END_OF_PACKET
+        {
+            "SessionId": "{$this->sessionId}",
+            "Sendings": [{$sendingsStr}]
+        }
+END_OF_PACKET;
+
+        // Формируем запрос
+        $response = null;
+        $responseStr = '';	
+        $args = array(
+            'timeout'   => 60,
+            'blocking'  => true,   
+            'headers'   => array('Content-Type' => 'application/json'),
+            'body'      => $orderData,
+        );
+
+        // Запрос CreateShipment
+        Plugin::get()->log( 'CreateShipment: Server Request:' ); Plugin::get()->log( $args );
+        $response = wp_remote_post( $url . '/CreateShipment', $args );       
+        Plugin::get()->log( 'CreateShipment: Server Responce:' ); Plugin::get()->log( $response );
+
+        try
+        {
+            $responseObj = json_decode( $response['body'] );
+            Plugin::get()->log( $responseObj );
+            if ( $responseObj )
+            {
+                $responseStr .= ( $responseObj->CreatedSendings ) ? 
+                    __( 'Отправление создано', IN_WC_CRM ) . ': '  . implode(',', $responseObj->CreatedSendings ) : '';
+                
+                if ( $responseObj->RejectedSendings )
+                {
+                    foreach($responseObj->RejectedSendings as $error )
+                    {
+                        $responseStr .= $error->ErrorMessage .  ' ' . $error->SenderCode . PHP_EOL;
+                    }
+                }
+            $responseStr .= PHP_EOL;	
+            }
+        }
+        catch (\Exception $error)
+        {
+                $responseStr .= __( 'Ошибка получения данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
+                Plugin::get()->log( __( 'Ошибка получения данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
+            
+        }
+
+        // Расшифровка ответа и запись в заказы
+        try
+        {
+            // Успешные отправления
+            foreach ( $responseObj->CreatedSendings as $sending )
+            {
+                $currentOrder = new \WC_Order( $sending->SenderCode );
+                $currentOrder->add_order_note( 
+                    __( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+                    __( 'Отправление создано', IN_WC_CRM ) . ': ' . 
+                    $sending->InvoiceNumber
+                );
+                $currentOrder->add_meta_data( __( 'Pikpoint InvoiceNumber', IN_WC_CRM ),  $sending->InvoiceNumber );
+            }
+
+            // Ошибочные отправления
+            foreach ( $responseObj->RejectedSendings as $sending )
+            {
+                $currentOrder = new \WC_Order( $sending->SenderCode );
+                $currentOrder->add_order_note( 
+                    __( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+                    __( 'Ошибка', IN_WC_CRM ) . ': ' . 
+                    $sending->ErrorMessage
+                );
+            }            
+        }
+        catch (\Exception $error)
+        {
+            $responseStr .= __( 'Ошибка записи данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
+            Plugin::get()->log( __( 'Ошибка записи данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
+        }
+		
+		echo $responseStr;
+		wp_die();
     }
 
     /**
@@ -360,7 +440,9 @@ class PickPoint extends BaseAdminPage
                 $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
                 $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
             $order );
-        $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $order->get_billing_phone(), $order );
+
+        $mobilePhone = preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() );
+        $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $mobilePhone, $order );
         $email = apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order );
 
         // Заказ
@@ -373,9 +455,8 @@ class PickPoint extends BaseAdminPage
         $DeliveryVat = apply_filters( 'inwccrm_pickpoint_DeliveryVat', 0, $order );
         $DeliveryFee = apply_filters( 'inwccrm_pickpoint_DeliveryFee', 0, $order );
         $InsuareValue = apply_filters( 'inwccrm_pickpoint_InsuareValue', 0, $order );
-        $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 0, $order );
-        $GettingType = apply_filters( 'inwccrm_pickpoint_GettingType', '102', $order );
-
+        $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 1, $order );
+        $GettingType = apply_filters( 'inwccrm_pickpoint_GettingType', '101', $order );
 
         // Постомат
         preg_match('/.*([\d]{4}-[\d]{3}).*/', $order->get_shipping_address_1(), $output_array);
@@ -389,17 +470,15 @@ class PickPoint extends BaseAdminPage
         $shopName = apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) );
         $shopManagerName = apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) );
         $shopOrganization = apply_filters( 'inwccrm_pickpoint_shopOrganization', $this->getParam( 'pickpoint-shopOrganization', '' ) );
-        $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $this->getParam( 'pickpoint-shopPhone', '' ) );
+        $shopPhone = preg_replace('/[\s\-\(\)\.]/', '', $this->getParam( 'pickpoint-shopPhone', '' ) );
+        $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $shopPhone  );
         $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) );
         
-
         // The main address pieces: https://wordpress.stackexchange.com/questions/319346/woocommerce-get-physical-store-address
         $store_address     = apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) );
         $store_address_2   = apply_filters( 'inwccrm_pickpoint_store_address_2', get_option( 'woocommerce_store_address_2' ) );
         $store_city        = apply_filters( 'inwccrm_pickpoint_store_city', get_option( 'woocommerce_store_city' ) );
         $store_postcode    = apply_filters( 'inwccrm_pickpoint_store_postcode', get_option( 'woocommerce_store_postcode' ) );
-
-
 
         // The country/state
         $store_raw_country = apply_filters( 'inwccrm_pickpoint_store_raw_country', get_option( 'woocommerce_default_country' ) );
@@ -423,7 +502,7 @@ class PickPoint extends BaseAdminPage
             $Price = $item->get_subtotal();
             $Quantity = $item->get_quantity();
             $Description = '';
-            $Upi = '';
+            $Upi = $product->get_id();
             $SubEnclose = <<<SUBENCLOSE
                 {
                     "ProductCode": "{$ProductCode}",
@@ -431,9 +510,9 @@ class PickPoint extends BaseAdminPage
                     "Name": "{$Name}",
                     "Price": "{$Price}",
                     "Quantity": "{$Quantity}",
-                    "Vat": "< Ставка НДС по товару >",
-                    "Description": "",
-                    "Upi": "{$ProductCode}"
+                    "Vat": null,
+                    "Description": "{$Description}",
+                    "Upi": "{$Upi}"
                 } 
 SUBENCLOSE;
             array_push( $SubEncloses, $SubEnclose );
@@ -444,12 +523,7 @@ SUBENCLOSE;
         $place = <<<PLACES
             {
                 "BarCode": "",
-                "GCBarCode": "",
                 "CellStorageType": "0",
-                "Width": "",
-                "Height": "",
-                "Depth": "",
-                "Weight": "",
                 "SubEncloses": [
                     {$SubEnclosesStr}
                 ]
@@ -460,15 +534,12 @@ PLACES;
         $placesStr = apply_filters( 'inwccrm_pickpoint_json_places', implode(',', $places), $order );
 
         $data  = <<<DATA
-        {
-            "SessionId": "{$this->sessionId}",
-            "Sendings": [
-              {
+            {
                 "EDTN": "{$requestId}",
                 "IKN": "{$ikn}",
                 "ClientName": "{$clientName}",
-                "TitleRus": "{$orderTitleRus}",
-                "TitleEng": "{$orderTitleEn}",
+                "TittleRus": "{$orderTitleRus}",
+                "TittleEng": "{$orderTitleEn}",
                 "Invoice": {
                   "SenderCode": "{$orderId}",
                   "Description": "{$shopName}",
@@ -513,9 +584,7 @@ PLACES;
                     {$placesStr}
                   ]
                 }
-              }
-            ]
-          }
+            }
 DATA;
         
         $data = apply_filters( 'inwccrm_pickpoint_json_shipment', $data, $order);

@@ -5,6 +5,18 @@
  */
 @include 'header.php';
 
+// Название колонок
+$dataTableColumns = apply_filters( 'inwccrm_pickpoint_datatable_header_columns', array(
+	esc_html__( '№ Заказа', IN_WC_CRM ),
+	esc_html__( 'Дата', IN_WC_CRM ),
+	esc_html__( 'ФИО', IN_WC_CRM ),
+	esc_html__( 'Сумма', IN_WC_CRM ),
+	esc_html__( 'Оплата', IN_WC_CRM ),
+	esc_html__( 'Доставка', IN_WC_CRM ),
+	esc_html__( 'Стоимость доставки', IN_WC_CRM ),
+	esc_html__( 'Действия', IN_WC_CRM ),	
+));
+
 ?>
 <section id="pickpointControls" style="text-align: center">
   <span>
@@ -37,14 +49,14 @@
 <table id="orderTable" class="display" style="width:100%">
         <thead>
             <tr>
-                <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Дата', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
+                <th><?php echo $dataTableColumns[0] ?></th>
+                <th><?php echo $dataTableColumns[1] ?></th>
+                <th><?php echo $dataTableColumns[2] ?></th>
+                <th><?php echo $dataTableColumns[3] ?></th>
+                <th><?php echo $dataTableColumns[4] ?></th>
+                <th><?php echo $dataTableColumns[5] ?></th>
+                <th><?php echo $dataTableColumns[6] ?></th>
+                <th><?php echo $dataTableColumns[7] ?></th>
             </tr>
         </thead>
         <tbody>
@@ -61,14 +73,14 @@
         </tbody>
         <tfoot>
             <tr>
-                <th><?php esc_html_e( '№ Заказа', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Дата', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'ФИО', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Сумма', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Склад', IN_WC_CRM ); ?></th>
-                <th><?php esc_html_e( 'Действия', IN_WC_CRM ); ?></th>
+                <th><?php echo $dataTableColumns[0] ?></th>
+                <th><?php echo $dataTableColumns[1] ?></th>
+                <th><?php echo $dataTableColumns[2] ?></th>
+                <th><?php echo $dataTableColumns[3] ?></th>
+                <th><?php echo $dataTableColumns[4] ?></th>
+                <th><?php echo $dataTableColumns[5] ?></th>
+                <th><?php echo $dataTableColumns[6] ?></th>
+                <th><?php echo $dataTableColumns[7] ?></th>
             </tr>
         </tfoot>
     </table>
