@@ -117,19 +117,27 @@ jQuery(function ($) {
             selectedIds.push(selectedRows[i].id)
         }
 
+		if (selectedIds.length == 0){
+			$('#loadBanner').hide('fast');
+			alert(IN_WC_CRM_Pickpoint.noRowsSelected);
+			return;
+		}
+		
         // Передаем данные на сервер
         var ajaxRequest = {
             action: 'send_orders',
             ids: selectedIds.join(',')
         };
 
-		$.post( ajaxurl, ajaxRequest, function(response) {
-            
-            alert( response );
-
-           $('#loadBanner').hide('fast');   
-        });
-   
+		$.post(ajaxurl, ajaxRequest)
+			.done(function(response){
+            	alert( response );
+           		$('#loadBanner').hide('fast'); 				
+			})
+			.fail(function(xhr, status, error){
+            	alert( status + ' ' + error );
+           		$('#loadBanner').hide('fast'); 				
+			});
     }
 
 });

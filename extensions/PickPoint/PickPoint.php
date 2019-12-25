@@ -131,6 +131,7 @@ class PickPoint extends BaseAdminPage
         $objectName = 'IN_WC_CRM_Pickpoint';
         $data = array(
             'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
+            'noRowsSelected' => __( 'Необходимо выбрать один или несколько заказов', IN_WC_CRM ),
             'shippingMethods' => apply_filters( 'inwccrm_pickpoint_header_shipping_methods', $this->shippingMethods ),
             'pageLength' => apply_filters( 'inwccrm_pickpoint_datatable_page_length', 10 ),			
         );
