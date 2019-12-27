@@ -10,6 +10,11 @@ use \WC_Shipping as WC_Shipping;
 
 class PickPoint extends BaseAdminPage
 {
+	/**
+	 * Лог-файл
+	 */
+	const LOGFILE = 'pickpoint.log';
+	
     /**
      * Методы доставки
      * @var mixed
@@ -354,14 +359,19 @@ END_OF_PACKET;
         );
 
         // Запрос CreateShipment
-        Plugin::get()->log( 'CreateShipment: Server Request:' ); Plugin::get()->log( $args );
-        $response = wp_remote_post( $url . '/CreateShipment', $args );       
-        Plugin::get()->log( 'CreateShipment: Server Responce:' ); Plugin::get()->log( $response );
+        Plugin::get()->log( '--- CreateShipment: Server Request:', self::LOGFILE ); 
+		Plugin::get()->log( $args, self::LOGFILE );
+        
+		$response = wp_remote_post( $url . '/CreateShipment', $args );       
+        
+		Plugin::get()->log( '--- CreateShipment: Server Responce:',self::LOGFILE ); 
+		Plugin::get()->log( $response, self::LOGFILE );
 
         try
         {
             $responseObj = json_decode( $response['body'] );
-            Plugin::get()->log( $responseObj );
+            Plugin::get()->log( '--- responseObj: ', self::LOGFILE );
+            Plugin::get()->log( $responseObj, self::LOGFILE );
             if ( $responseObj )
             {
                 $responseStr .= ( $responseObj->CreatedSendings ) ? 
@@ -379,17 +389,21 @@ END_OF_PACKET;
         }
         catch (\Exception $error)
         {
-                $responseStr .= __( 'Ошибка получения данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
-                Plugin::get()->log( __( 'Ошибка получения данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
+            $responseStr .= __( 'Ошибка получения данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
+                
+			Plugin::get()->log( __( 'Ошибка получения данных', IN_WC_CRM ), self::LOGFILE ); 
+			Plugin::get()->log( $error, self::LOGFILE );
             
         }
 
         // Расшифровка ответа и запись в заказы
-        try
+		Plugin::get()->log( '--- sendings: ', self::LOGFILE );
+		try
         {
             // Успешные отправления
             foreach ( $responseObj->CreatedSendings as $sending )
             {
+				Plugin::get()->log( $sending, self::LOGFILE );
                 $currentOrder = new \WC_Order( $sending->SenderCode );
                 $currentOrder->add_order_note( 
                     __( 'Pikpoint', IN_WC_CRM ) . ': ' . 
@@ -413,7 +427,9 @@ END_OF_PACKET;
         catch (\Exception $error)
         {
             $responseStr .= __( 'Ошибка записи данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
-            Plugin::get()->log( __( 'Ошибка записи данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
+            
+			Plugin::get()->log( __( 'Ошибка записи данных', IN_WC_CRM ), self::LOGFILE ); 
+			Plugin::get()->log( $error, self::LOGFILE );
         }
 		
 		echo $responseStr;
@@ -426,7 +442,6 @@ END_OF_PACKET;
     private function createShipment( $order )
     {
         if ( empty( $this->sessionId ) ) return false;
-        //Plugin::get()->log('createShipment order:' . $order );
 
         // Данные
         $requestId = apply_filters( 'inwccrm_pickpoint_requestId', sha1( microtime() . __CLASS__ ), $order );   //<Идентификатор запроса, используемый для ответа. Указывайте уникальное число (50 символов)>
@@ -587,7 +602,6 @@ PLACES;
 DATA;
         
         $data = apply_filters( 'inwccrm_pickpoint_json_shipment', $data, $order);
-        Plugin::get()->log('createShipment:' . $data);
         return $data;
     }
 }
