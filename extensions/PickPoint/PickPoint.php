@@ -25,15 +25,14 @@ class PickPoint extends BaseAdminPage
     {
         parent::__construct();
         if ( ! $this->isEnabled() ) 
-            return;  
-
+            return;
+		
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
         add_action( 'wp_ajax_send_orders', array( $this, 'send_orders' ) );
 
         // Методы доставки
         $this->shippingMethods = $this->getShippingMethods();
-
     }
 
     /**

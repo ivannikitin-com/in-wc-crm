@@ -123,20 +123,47 @@ class Plugin
 	}
 
 	/**
+	 * Имя файла лога
+	 */
+	const LOGFILE = 'in-wc-crm.log';
+	
+	/**
 	 * Записывает сообщение в лог, если включена отладка
 	 * @param mixed $message	Сообщение или объект
+	 * @param string $logfile	Имя лога в которй пишется сообщение. Если пусто -- в общий лог WP
 	 */
-	public function log( $message )
+	public function log( $message, $logfile = self::LOGFILE )
 	{
 		if ( WP_DEBUG )
 		{
+			if ( !empty( $logfile ) ) $logfile = $this->path . $logfile;
+			error_log( IN_WC_CRM . 'LOG: ' . $logfile );
+			
 			if (is_array($message) || is_object($message)) 
 			{
-                error_log( IN_WC_CRM . ': ' . print_r( $message, true ) );
+                if ( empty( $logfile ) )
+				{
+					error_log( IN_WC_CRM . ': ' . print_r( $message, true ) );
+				}
+				else
+				{
+					file_put_contents( $logfile, 
+						'[' . date('d.m.Y H:i:s') . '] ' . ': ' . print_r( $message, true ) . PHP_EOL, 
+						FILE_APPEND );	
+				}
 			} 
 			else 
 			{
-                error_log( IN_WC_CRM . ': ' . $message );
+                if ( empty( $logfile ) )
+				{
+					error_log( IN_WC_CRM . ': ' . $message );
+				}
+				else
+				{
+					file_put_contents( $logfile, 
+						'[' . date('d.m.Y H:i:s') . '] ' . ': ' . $message . PHP_EOL, 
+						FILE_APPEND );	
+				}				
             }			
 		}
 	}
