@@ -74,7 +74,7 @@ class BaseAdminPage extends Base implements IAdminPage
      */
     public function getAdminPageСapability()
     {
-        return 'manage_options';
+        return 'manage_woocommerce';
     }
     
     /**
