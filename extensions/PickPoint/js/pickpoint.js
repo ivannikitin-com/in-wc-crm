@@ -101,7 +101,10 @@ jQuery(function ($) {
         
         function rusDateToTimeStamp( dateStr ){
 			dateStr += ''; // Явное преобразование к строке
-            return new Date( dateStr.replace( /(\d{2})\.(\d{2})\.(\d{4})/, "$2/$1/$3") ).getTime() / 1000;
+			var date = new Date( dateStr.replace( /(\d{2})\.(\d{2})\.(\d{4})/, "$2/$1/$3") );
+			var timestamp = date.getTime() / 1000
+			console.log(dateStr, date, timestamp);
+            return timestamp;
         }
     }
 

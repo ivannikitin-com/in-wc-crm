@@ -192,62 +192,81 @@ class PickPoint extends BaseAdminPage
      */
     public function get_orders()
     {
-        $result = array();
+		$logFile = 'get_orders.log';
+		$result = array();
+		
+		try
+		{
+			// Параметры запроса
+			// https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
+			$args = array(
+				'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
+				'orderby'   => 'date',
+				'order'     => 'DESC',
+				'return'    => 'objects',
+				'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
+			);
 
-        // Параметры запроса
-        // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
-        $args = array(
-            'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
-            'orderby'   => 'date',
-            'order'     => 'DESC',
-            'return'    => 'objects',
-            'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
-        );
+			$dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
+			$dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
 
-        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
-        $dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
+			if ( $dateFrom && $dateTo )
+			{
+				$args['date_created'] = $dateFrom . '...' . $dateTo;
+			}
+			else
+			{
+				if ( empty( $dateFrom )  && ! empty( $dateTo ) )
+				{
+					$args['date_created'] = '<=' . $dateTo;
+				}
+				if ( ! empty( $dateFrom )  && empty( $dateTo ) )
+				{
+					$args['date_created'] = '>=' . $dateFrom;
+				}
+			}
 
-        if ( $dateFrom && $dateTo )
-        {
-            $args['date_created'] = $dateFrom . '...' . $dateTo;
-        }
-        else
-        {
-            if ( empty( $dateFrom )  && ! empty( $dateTo ) )
-            {
-                $args['date_created'] = '<=' . $dateTo;
-            }
-            if ( ! empty( $dateFrom )  && empty( $dateTo ) )
-            {
-                $args['date_created'] = '>=' . $dateFrom;
-            }
-        }
-        
-        // Запрос заказов
-        $orders = wc_get_orders( $args );
+			//Plugin::get()->log( __( 'get_orders: Запрос заказов', IN_WC_CRM ), $logFile ); 
+			//Plugin::get()->log( $args, $logFile );			
+			
+			// Запрос заказов
+			$orders = wc_get_orders( $args );
+			
+			//Plugin::get()->log( __( 'get_orders: Заказы', IN_WC_CRM ), $logFile ); 
+			//Plugin::get()->log( $orders, $logFile );				
 
-        // Требуемый метод доставки
-        $shipping_method = ( isset( $_POST['shipping_method'] ) ) ? sanitize_text_field( $_POST['shipping_method'] ) : '';
+			// Требуемый метод доставки
+			$shipping_method = ( isset( $_POST['shipping_method'] ) ) ? sanitize_text_field( $_POST['shipping_method'] ) : '';
 
-        foreach ($orders as $order)
-        {
-            if ( ! empty( $shipping_method ) )
-            {
-                // Фильтруем по методам доставки
-                if ( $order->get_shipping_method() != $this->shippingMethods[ $shipping_method ] ) 
-                    continue;
-            }
+			foreach ($orders as $order)
+			{
+				
+				//Plugin::get()->log( 'order ID for error ' . $order->get_order_number(), '');
+				
+				
+				if ( ! empty( $shipping_method ) )
+				{
+					// Фильтруем по методам доставки
+					if ( $order->get_shipping_method() != $this->shippingMethods[ $shipping_method ] ) 
+						continue;
+				}
 
-            $result[] = array(
-                'id' => apply_filters( 'inwccrm_pickpoint_datatable_id', $order->get_order_number(), $order ),
-                'date' => apply_filters( 'inwccrm_pickpoint_datatable_date', $order->get_date_created()->date_i18n('d.m.Y'), $order ),
-                'customer' => apply_filters( 'inwccrm_pickpoint_datatable_customer', $order->get_formatted_billing_full_name(), $order ),
-                'total' => apply_filters( 'inwccrm_pickpoint_datatable_total', $order->calculate_totals(), $order ),
-                'payment_method' => apply_filters( 'inwccrm_pickpoint_datatable_payment_method', $order->get_payment_method_title(), $order ),
-                'shipping_method' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_method', $order->get_shipping_method(), $order ),
-                'shipping_cost' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_cost', $order->get_shipping_total(), $order )
-            );
+				$result[] = array(
+					'id' => apply_filters( 'inwccrm_pickpoint_datatable_id', $order->get_order_number(), $order ),
+					'date' => apply_filters( 'inwccrm_pickpoint_datatable_date', $order->get_date_created()->date_i18n('d.m.Y'), $order ),
+					'customer' => apply_filters( 'inwccrm_pickpoint_datatable_customer', $order->get_formatted_billing_full_name(), $order ),
+					'total' => apply_filters( 'inwccrm_pickpoint_datatable_total', $order->calculate_totals(), $order ),
+					'payment_method' => apply_filters( 'inwccrm_pickpoint_datatable_payment_method', $order->get_payment_method_title(), $order ),
+					'shipping_method' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_method', $order->get_shipping_method(), $order ),
+					'shipping_cost' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_cost', $order->get_shipping_total(), $order )
+				);
 
+			}
+		}
+        catch (\Exception $error)
+        {       
+			Plugin::get()->log( __( 'get_orders: Ошибка передачи данных', IN_WC_CRM ), $logFile ); 
+			Plugin::get()->log( $error, $logFile );
         }
 
         echo json_encode( $result );
@@ -452,15 +471,15 @@ END_OF_PACKET;
         if ( empty( $ikn ) ) return false;
 
         // Пользователь
-        $clientName = addslashes( apply_filters( 'inwccrm_pickpoint_clientName', 
+        $clientName = apply_filters( 'inwccrm_pickpoint_clientName', 
             ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
                 $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
                 $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
-            $order ) );
+            $order );
 
         $mobilePhone = preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() );
         $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $mobilePhone, $order );
-        $email = addslashes( apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order ) );
+        $email = apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order );
 
         // Заказ
         $orderId = apply_filters( 'inwccrm_pickpoint_orderId', $order->get_order_number(), $order );
@@ -484,21 +503,21 @@ END_OF_PACKET;
         $senderRegionName = apply_filters( 'inwccrm_pickpoint_senderRegionName', $order->get_shipping_state(), $order );
 
         // Магазин
-        $shopName = addslashes( apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) ) );
-        $shopManagerName = addslashes( apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) ) );
+        $shopName = apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) );
+        $shopManagerName = apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) );
         $shopOrganization = apply_filters( 'inwccrm_pickpoint_shopOrganization', $this->getParam( 'pickpoint-shopOrganization', '' ) );
         $shopPhone = preg_replace('/[\s\-\(\)\.]/', '', $this->getParam( 'pickpoint-shopPhone', '' ) );
-        $shopPhone = addslashes( apply_filters( 'inwccrm_pickpoint_shopPhone', $shopPhone  ) );
-        $shopComment = addslashes( apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) ) );
+        $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $shopPhone  );
+        $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) );
         
         // The main address pieces: https://wordpress.stackexchange.com/questions/319346/woocommerce-get-physical-store-address
-        $store_address     = addslashes( apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) ) );
-        $store_address_2   = addslashes( apply_filters( 'inwccrm_pickpoint_store_address_2', get_option( 'woocommerce_store_address_2' ) ) );
-        $store_city        = addslashes( apply_filters( 'inwccrm_pickpoint_store_city', get_option( 'woocommerce_store_city' ) ) );
-        $store_postcode    = addslashes( apply_filters( 'inwccrm_pickpoint_store_postcode', get_option( 'woocommerce_store_postcode' ) ) );
+        $store_address     = apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) );
+        $store_address_2   = apply_filters( 'inwccrm_pickpoint_store_address_2', get_option( 'woocommerce_store_address_2' ) );
+        $store_city        = apply_filters( 'inwccrm_pickpoint_store_city', get_option( 'woocommerce_store_city' ) );
+        $store_postcode    = apply_filters( 'inwccrm_pickpoint_store_postcode', get_option( 'woocommerce_store_postcode' ) );
 
         // The country/state
-        $store_raw_country = addslashes( apply_filters( 'inwccrm_pickpoint_store_raw_country', get_option( 'woocommerce_default_country' ) ) );
+        $store_raw_country = apply_filters( 'inwccrm_pickpoint_store_raw_country', get_option( 'woocommerce_default_country' ) );
 
         // Split the country/state
         $split_country = explode( ":", $store_raw_country );
@@ -514,7 +533,7 @@ END_OF_PACKET;
             if ( ! is_a( $item, 'WC_Order_Item_Product' ) ) continue;
 
             $product = wc_get_product( $item->get_product_id() );
-            $ProductCode = addslashes( $product->get_sku() );
+            $ProductCode = $product->get_sku();
             $Name = addslashes( $item->get_name() );
             $Price = $item->get_subtotal();
             $Quantity = $item->get_quantity();
