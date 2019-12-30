@@ -452,15 +452,15 @@ END_OF_PACKET;
         if ( empty( $ikn ) ) return false;
 
         // Пользователь
-        $clientName = apply_filters( 'inwccrm_pickpoint_clientName', 
+        $clientName = addslashes( apply_filters( 'inwccrm_pickpoint_clientName', 
             ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
                 $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
                 $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
-            $order );
+            $order ) );
 
         $mobilePhone = preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() );
         $mobilePhone = apply_filters( 'inwccrm_pickpoint_mobilePhone', $mobilePhone, $order );
-        $email = apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order );
+        $email = addslashes( apply_filters( 'inwccrm_pickpoint_email', $order->get_billing_email(), $order ) );
 
         // Заказ
         $orderId = apply_filters( 'inwccrm_pickpoint_orderId', $order->get_order_number(), $order );
@@ -484,21 +484,21 @@ END_OF_PACKET;
         $senderRegionName = apply_filters( 'inwccrm_pickpoint_senderRegionName', $order->get_shipping_state(), $order );
 
         // Магазин
-        $shopName = apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) );
-        $shopManagerName = apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) );
+        $shopName = addslashes( apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) ) );
+        $shopManagerName = addslashes( apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) ) );
         $shopOrganization = apply_filters( 'inwccrm_pickpoint_shopOrganization', $this->getParam( 'pickpoint-shopOrganization', '' ) );
         $shopPhone = preg_replace('/[\s\-\(\)\.]/', '', $this->getParam( 'pickpoint-shopPhone', '' ) );
-        $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $shopPhone  );
-        $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) );
+        $shopPhone = addslashes( apply_filters( 'inwccrm_pickpoint_shopPhone', $shopPhone  ) );
+        $shopComment = addslashes( apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) ) );
         
         // The main address pieces: https://wordpress.stackexchange.com/questions/319346/woocommerce-get-physical-store-address
-        $store_address     = apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) );
-        $store_address_2   = apply_filters( 'inwccrm_pickpoint_store_address_2', get_option( 'woocommerce_store_address_2' ) );
-        $store_city        = apply_filters( 'inwccrm_pickpoint_store_city', get_option( 'woocommerce_store_city' ) );
-        $store_postcode    = apply_filters( 'inwccrm_pickpoint_store_postcode', get_option( 'woocommerce_store_postcode' ) );
+        $store_address     = addslashes( apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) ) );
+        $store_address_2   = addslashes( apply_filters( 'inwccrm_pickpoint_store_address_2', get_option( 'woocommerce_store_address_2' ) ) );
+        $store_city        = addslashes( apply_filters( 'inwccrm_pickpoint_store_city', get_option( 'woocommerce_store_city' ) ) );
+        $store_postcode    = addslashes( apply_filters( 'inwccrm_pickpoint_store_postcode', get_option( 'woocommerce_store_postcode' ) ) );
 
         // The country/state
-        $store_raw_country = apply_filters( 'inwccrm_pickpoint_store_raw_country', get_option( 'woocommerce_default_country' ) );
+        $store_raw_country = addslashes( apply_filters( 'inwccrm_pickpoint_store_raw_country', get_option( 'woocommerce_default_country' ) ) );
 
         // Split the country/state
         $split_country = explode( ":", $store_raw_country );
@@ -514,8 +514,8 @@ END_OF_PACKET;
             if ( ! is_a( $item, 'WC_Order_Item_Product' ) ) continue;
 
             $product = wc_get_product( $item->get_product_id() );
-            $ProductCode = $product->get_sku();
-            $Name = $item->get_name();
+            $ProductCode = addslashes( $product->get_sku() );
+            $Name = addslashes( $item->get_name() );
             $Price = $item->get_subtotal();
             $Quantity = $item->get_quantity();
             $Description = '';
