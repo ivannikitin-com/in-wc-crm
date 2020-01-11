@@ -10,6 +10,11 @@ use \WC_Shipping as WC_Shipping;
 
 class PickPoint extends BaseAdminPage
 {
+	/**
+	 * Лог-файл
+	 */
+	const LOGFILE = 'pickpoint.log';
+	
     /**
      * Методы доставки
      * @var mixed
@@ -25,15 +30,14 @@ class PickPoint extends BaseAdminPage
     {
         parent::__construct();
         if ( ! $this->isEnabled() ) 
-            return;  
-
+            return;
+		
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_get_orders', array( $this, 'get_orders' ) );
         add_action( 'wp_ajax_send_orders', array( $this, 'send_orders' ) );
 
         // Методы доставки
         $this->shippingMethods = $this->getShippingMethods();
-
     }
 
     /**
@@ -188,62 +192,81 @@ class PickPoint extends BaseAdminPage
      */
     public function get_orders()
     {
-        $result = array();
+		$logFile = 'get_orders.log';
+		$result = array();
+		
+		try
+		{
+			// Параметры запроса
+			// https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
+			$args = array(
+				'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
+				'orderby'   => 'date',
+				'order'     => 'DESC',
+				'return'    => 'objects',
+				'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
+			);
 
-        // Параметры запроса
-        // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
-        $args = array(
-            'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
-            'orderby'   => 'date',
-            'order'     => 'DESC',
-            'return'    => 'objects',
-            'status'    => $this->getParam( 'pickpoint-order-status', 'wc-processing' ),     
-        );
+			$dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
+			$dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
 
-        $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
-        $dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
+			if ( $dateFrom && $dateTo )
+			{
+				$args['date_created'] = $dateFrom . '...' . $dateTo;
+			}
+			else
+			{
+				if ( empty( $dateFrom )  && ! empty( $dateTo ) )
+				{
+					$args['date_created'] = '<=' . $dateTo;
+				}
+				if ( ! empty( $dateFrom )  && empty( $dateTo ) )
+				{
+					$args['date_created'] = '>=' . $dateFrom;
+				}
+			}
 
-        if ( $dateFrom && $dateTo )
-        {
-            $args['date_created'] = $dateFrom . '...' . $dateTo;
-        }
-        else
-        {
-            if ( empty( $dateFrom )  && ! empty( $dateTo ) )
-            {
-                $args['date_created'] = '<=' . $dateTo;
-            }
-            if ( ! empty( $dateFrom )  && empty( $dateTo ) )
-            {
-                $args['date_created'] = '>=' . $dateFrom;
-            }
-        }
-        
-        // Запрос заказов
-        $orders = wc_get_orders( $args );
+			//Plugin::get()->log( __( 'get_orders: Запрос заказов', IN_WC_CRM ), $logFile ); 
+			//Plugin::get()->log( $args, $logFile );			
+			
+			// Запрос заказов
+			$orders = wc_get_orders( $args );
+			
+			//Plugin::get()->log( __( 'get_orders: Заказы', IN_WC_CRM ), $logFile ); 
+			//Plugin::get()->log( $orders, $logFile );				
 
-        // Требуемый метод доставки
-        $shipping_method = ( isset( $_POST['shipping_method'] ) ) ? sanitize_text_field( $_POST['shipping_method'] ) : '';
+			// Требуемый метод доставки
+			$shipping_method = ( isset( $_POST['shipping_method'] ) ) ? sanitize_text_field( $_POST['shipping_method'] ) : '';
 
-        foreach ($orders as $order)
-        {
-            if ( ! empty( $shipping_method ) )
-            {
-                // Фильтруем по методам доставки
-                if ( $order->get_shipping_method() != $this->shippingMethods[ $shipping_method ] ) 
-                    continue;
-            }
+			foreach ($orders as $order)
+			{
+				
+				//Plugin::get()->log( 'order ID for error ' . $order->get_order_number(), '');
+				
+				
+				if ( ! empty( $shipping_method ) )
+				{
+					// Фильтруем по методам доставки
+					if ( $order->get_shipping_method() != $this->shippingMethods[ $shipping_method ] ) 
+						continue;
+				}
 
-            $result[] = array(
-                'id' => apply_filters( 'inwccrm_pickpoint_datatable_id', $order->get_order_number(), $order ),
-                'date' => apply_filters( 'inwccrm_pickpoint_datatable_date', $order->get_date_created()->date_i18n('d.m.Y'), $order ),
-                'customer' => apply_filters( 'inwccrm_pickpoint_datatable_customer', $order->get_formatted_billing_full_name(), $order ),
-                'total' => apply_filters( 'inwccrm_pickpoint_datatable_total', $order->calculate_totals(), $order ),
-                'payment_method' => apply_filters( 'inwccrm_pickpoint_datatable_payment_method', $order->get_payment_method_title(), $order ),
-                'shipping_method' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_method', $order->get_shipping_method(), $order ),
-                'shipping_cost' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_cost', $order->get_shipping_total(), $order )
-            );
+				$result[] = array(
+					'id' => apply_filters( 'inwccrm_pickpoint_datatable_id', $order->get_order_number(), $order ),
+					'date' => apply_filters( 'inwccrm_pickpoint_datatable_date', $order->get_date_created()->date_i18n('d.m.Y'), $order ),
+					'customer' => apply_filters( 'inwccrm_pickpoint_datatable_customer', $order->get_formatted_billing_full_name(), $order ),
+					'total' => apply_filters( 'inwccrm_pickpoint_datatable_total', $order->calculate_totals(), $order ),
+					'payment_method' => apply_filters( 'inwccrm_pickpoint_datatable_payment_method', $order->get_payment_method_title(), $order ),
+					'shipping_method' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_method', $order->get_shipping_method(), $order ),
+					'shipping_cost' => apply_filters( 'inwccrm_pickpoint_datatable_shipping_cost', $order->get_shipping_total(), $order )
+				);
 
+			}
+		}
+        catch (\Exception $error)
+        {       
+			Plugin::get()->log( __( 'get_orders: Ошибка передачи данных', IN_WC_CRM ), $logFile ); 
+			Plugin::get()->log( $error, $logFile );
         }
 
         echo json_encode( $result );
@@ -355,66 +378,80 @@ END_OF_PACKET;
         );
 
         // Запрос CreateShipment
-        Plugin::get()->log( 'CreateShipment: Server Request:' ); Plugin::get()->log( $args );
-        $response = wp_remote_post( $url . '/CreateShipment', $args );       
-        Plugin::get()->log( 'CreateShipment: Server Responce:' ); Plugin::get()->log( $response );
+        Plugin::get()->log( '--- CreateShipment: Server Request:', self::LOGFILE ); 
+		Plugin::get()->log( $args, self::LOGFILE );
+        
+		$response = wp_remote_post( $url . '/CreateShipment', $args );       
+        
+		Plugin::get()->log( '--- CreateShipment: Server Responce:',self::LOGFILE ); 
+		Plugin::get()->log( $response, self::LOGFILE );
 
+		$responseObj =null;
         try
         {
             $responseObj = json_decode( $response['body'] );
-            Plugin::get()->log( $responseObj );
+            Plugin::get()->log( '--- responseObj: ', self::LOGFILE );
+            Plugin::get()->log( $responseObj, self::LOGFILE );
             if ( $responseObj )
             {
-                $responseStr .= ( $responseObj->CreatedSendings ) ? 
-                    __( 'Отправление создано', IN_WC_CRM ) . ': '  . implode(',', $responseObj->CreatedSendings ) : '';
+				
+				// Записываем успешные отправления
+				Plugin::get()->log( '--- CreatedSendings: ', self::LOGFILE );
+				Plugin::get()->log( $responseObj->CreatedSendings, self::LOGFILE );
+				
+				$responseStr .=  __( 'Отправление создано', IN_WC_CRM ) . ': ';
+				
+				Plugin::get()->log( '--- Sendings: ', self::LOGFILE );
+				foreach($responseObj->CreatedSendings as $sending )
+				{
+					Plugin::get()->log( $sending, self::LOGFILE );
+					$currentOrder = new \WC_Order( $sending->SenderCode );
+					$currentOrder->add_order_note( 
+						__( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+						__( 'Отправление создано', IN_WC_CRM ) . ': ' . 
+						$sending->InvoiceNumber
+					);
+					$currentOrder->add_meta_data( __( 'Pikpoint InvoiceNumber', IN_WC_CRM ),  $sending->InvoiceNumber );
+					$responseStr .= $sending->SenderCode . ',';
+				}
+				$responseStr .= PHP_EOL;
+				
+				// Записываем неуспешные отправления
+				Plugin::get()->log( '--- RejectedSendings: ', self::LOGFILE );
+				Plugin::get()->log( $responseObj->RejectedSendings, self::LOGFILE );
+				
+				$responseStr .=  __( 'Ошибки: ', IN_WC_CRM ) . ': ';
+				
+				Plugin::get()->log( '--- Sendings: ', self::LOGFILE );
+				foreach($responseObj->RejectedSendings as $sending )
+				{
+					Plugin::get()->log( $sending, self::LOGFILE );
+					$currentOrder = new \WC_Order( $sending->SenderCode );
+					$currentOrder->add_order_note( 
+						__( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+						__( 'Ошибка', IN_WC_CRM ) . ': ' . 
+						$sending->ErrorMessage
+					);					
+					
+					$responseStr .= $error->ErrorMessage .  ' ' . $error->SenderCode . PHP_EOL;
+				}				
+				
+				$responseStr .= PHP_EOL;
+				
+            }
+			else
+			{
+				Plugin::get()->log( __( 'Пустой ответ', IN_WC_CRM ), self::LOGFILE );
+				$responseStr .= __( 'Пустой ответ', IN_WC_CRM );
+			}
+        }
+        catch (\Exception $error)
+        {
+            $responseStr .= __( 'Ошибка получения и записи данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
                 
-                if ( $responseObj->RejectedSendings )
-                {
-                    foreach($responseObj->RejectedSendings as $error )
-                    {
-                        $responseStr .= $error->ErrorMessage .  ' ' . $error->SenderCode . PHP_EOL;
-                    }
-                }
-            $responseStr .= PHP_EOL;	
-            }
-        }
-        catch (\Exception $error)
-        {
-                $responseStr .= __( 'Ошибка получения данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
-                Plugin::get()->log( __( 'Ошибка получения данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
+			Plugin::get()->log( __( 'Ошибка получения и записи данных', IN_WC_CRM ), self::LOGFILE ); 
+			Plugin::get()->log( $error, self::LOGFILE );
             
-        }
-
-        // Расшифровка ответа и запись в заказы
-        try
-        {
-            // Успешные отправления
-            foreach ( $responseObj->CreatedSendings as $sending )
-            {
-                $currentOrder = new \WC_Order( $sending->SenderCode );
-                $currentOrder->add_order_note( 
-                    __( 'Pikpoint', IN_WC_CRM ) . ': ' . 
-                    __( 'Отправление создано', IN_WC_CRM ) . ': ' . 
-                    $sending->InvoiceNumber
-                );
-                $currentOrder->add_meta_data( __( 'Pikpoint InvoiceNumber', IN_WC_CRM ),  $sending->InvoiceNumber );
-            }
-
-            // Ошибочные отправления
-            foreach ( $responseObj->RejectedSendings as $sending )
-            {
-                $currentOrder = new \WC_Order( $sending->SenderCode );
-                $currentOrder->add_order_note( 
-                    __( 'Pikpoint', IN_WC_CRM ) . ': ' . 
-                    __( 'Ошибка', IN_WC_CRM ) . ': ' . 
-                    $sending->ErrorMessage
-                );
-            }            
-        }
-        catch (\Exception $error)
-        {
-            $responseStr .= __( 'Ошибка записи данных', IN_WC_CRM ) . ': ' . var_export( $error, true );
-            Plugin::get()->log( __( 'Ошибка записи данных', IN_WC_CRM ) ); Plugin::get()->log( $error );
         }
 		
 		echo $responseStr;
@@ -427,7 +464,6 @@ END_OF_PACKET;
     private function createShipment( $order )
     {
         if ( empty( $this->sessionId ) ) return false;
-        //Plugin::get()->log('createShipment order:' . $order );
 
         // Данные
         $requestId = apply_filters( 'inwccrm_pickpoint_requestId', sha1( microtime() . __CLASS__ ), $order );   //<Идентификатор запроса, используемый для ответа. Указывайте уникальное число (50 символов)>
@@ -498,7 +534,7 @@ END_OF_PACKET;
 
             $product = wc_get_product( $item->get_product_id() );
             $ProductCode = $product->get_sku();
-            $Name = $item->get_name();
+            $Name = addslashes( $item->get_name() );
             $Price = $item->get_subtotal();
             $Quantity = $item->get_quantity();
             $Description = '';
@@ -588,7 +624,6 @@ PLACES;
 DATA;
         
         $data = apply_filters( 'inwccrm_pickpoint_json_shipment', $data, $order);
-        Plugin::get()->log('createShipment:' . $data);
         return $data;
     }
 }
