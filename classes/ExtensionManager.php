@@ -76,7 +76,7 @@ class ExtensionManager
         foreach ( $this->extensions as $extension => $data )
         {
             // Проверка наличия класса
-            $extensionClass = '\IN_WC_CRM\Extensions\\' . $extension;
+            $extensionClass = '\\IN_WC_CRM\Extensions\\' . $extension;
             if ( ! class_exists( $extensionClass ) )
             {
                 error_log( IN_WC_CRM . ': ' . $extension . __('.php отсуствует. Расширение игнорируется.', IN_WC_CRM ) );
@@ -157,7 +157,7 @@ class ExtensionManager
 	 */
     public function adminMenuContent()
     {
-        @include( Plugin::get()->path . 'views/info.php' );
+        @include( Plugin::get()->path . 'views/extensions-list.php' );
     }
 
 	/**

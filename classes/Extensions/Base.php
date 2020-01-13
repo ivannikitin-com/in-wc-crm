@@ -26,6 +26,15 @@ class Base implements IExtension
         return '';
     }
 
+    /**
+     * Возвращает кратное описание расширения
+     * @return string
+     */
+    public function getDescription()
+    {
+        return '';
+    }    
+
     /* -------------------- Реализация настроек расширения -------------------- */
     /**
      * Параметры расширения

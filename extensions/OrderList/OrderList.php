@@ -32,6 +32,16 @@ class OrderList extends BaseAdminPage
     }
 
     /**
+     * Возвращает название расширения
+     * @return string
+     */
+    public function getDescription()
+    {
+        return __( 'Работа со списоком заказов', IN_WC_CRM );
+    }
+    
+
+    /**
      * Формирует и возвращает массив колонок таблицы заказов
      * @return mixed
      */
