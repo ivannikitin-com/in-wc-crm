@@ -4,6 +4,7 @@
  */
 namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
+use \WC_Shipping as WC_Shipping;
 
 class OrderList extends BaseAdminPage
 {
@@ -94,16 +95,30 @@ class OrderList extends BaseAdminPage
             true );
         wp_enqueue_script( $scriptID );
         
-        // Параметры для скриптов
+        // Параметры и строки для скриптов
         $objectName = 'IN_WC_CRM_OrderList';
         $data = array(
-            'viewOrderTitle' => __( 'Просмотр и редактирование заказа', IN_WC_CRM ),
-            'noRowsSelected' => __( 'Необходимо выбрать один или несколько заказов', IN_WC_CRM ),
-            'shippingMethods' => apply_filters( 'inwccrm_pickpoint_header_shipping_methods', $this->shippingMethods ),
-            'pageLength' => apply_filters( 'inwccrm_pickpoint_datatable_page_length', 10 ),			
+            'viewOrderTitle' => __( 'Просмотреть заказ', IN_WC_CRM ),
+            'pageLength' => apply_filters( 'inwccrm_orderlist_page_length', 10 ),
+            'columns' => $this->getColumns(),
         );
         wp_localize_script( $scriptID, $objectName, $data );
     }
+
+    /**
+     * Возвращает массив id => title методов доставки
+     * @return mixed
+     */
+    private function getShippingMethods()
+    {
+        $shippingMethods = array();
+        $shipping = new WC_Shipping();        
+        foreach( $shipping->get_shipping_methods() as $key => $method )
+        {
+            $shippingMethods[$key] = $method->method_title;
+        }
+        return apply_filters( 'inwccrm_orderlist_shipping_methods', $shippingMethods );
+    }    
 
     /**
      * Отрисовывает содержимое страницы

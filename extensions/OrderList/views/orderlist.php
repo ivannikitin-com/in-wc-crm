@@ -1,5 +1,9 @@
 <?php
-
+// Методы доставки
+$shippingMethods = array_merge(
+    array('_all' => __( 'Все методы', IN_WC_CRM )), 
+    $this->getShippingMethods()
+);
 
 
 ?>
@@ -15,7 +19,9 @@
   <span>
       <label for="shipping_method"><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></label>
       <select id="shipping_method">
-        <option value=""><?php esc_html_e( 'Все методы', IN_WC_CRM ); ?></option>
+        <?php foreach ( $shippingMethods as $methodCode => $methodTitle ): ?>
+            <option value="<?php echo $methodCode?>"><?php echo $methodTitle ?></option>
+        <?php endforeach ?>
       </select>
   </span>
 </section>
