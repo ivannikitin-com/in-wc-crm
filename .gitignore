@@ -3,5 +3,7 @@
 *.code-workspace
 .vscode
 *.vscode
+*.old
+*.old.php
 
 
