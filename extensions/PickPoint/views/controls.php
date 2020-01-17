@@ -1,0 +1,1 @@
+<button id="btnPickPoint"><i class="fas fa-map-marker-alt"></i>&nbsp;<?php esc_html_e( 'PickPoint', IN_WC_CRM ); ?></button>
