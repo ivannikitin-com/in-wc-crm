@@ -17,11 +17,16 @@ class API
     const LOGFILE = 'pickpoint-sending.log';
 
     /**
-     * Параметры удаленного сервера
+     * Параметры удаленного сервера и подключения
      */
     private $url;
     private $login;
     private $password;
+    private $ikn;
+    private $shopManagerName;
+    private $shopOrganization;
+    private $shopPhone;
+    private $shopComment;
 
     /**
      * ID сессии
@@ -30,15 +35,25 @@ class API
 
     /**
      * Конструктор
-     * @param string    $url        URL удаленного сервера
-     * @param string    $login      Логин
-     * @param string    $password   Пароль
+     * @param string    $url                    URL удаленного сервера
+     * @param string    $login                  Логин
+     * @param string    $password               Пароль
+     * @param string    $ikn                    Номер договора
+     * @param string    $shopManagerName        Менеджер компании
+     * @param string    $shopOrganization       Название организации
+     * @param string    $shopPhone              Телефон организации
+     * @param string    $shopComment            Комментарий организации
      */
-    public function __construct( $url, $login, $password )
+    public function __construct( $url, $login, $password, $ikn, $shopManagerName, $shopOrganization, $shopPhone, $shopComment )
     {
         $this->url = $url;
         $this->login = $login;
         $this->password = $password;
+        $this->ikn = $ikn;
+        $this->shopManagerName = $shopManagerName;
+        $this->shopOrganization = $shopOrganization;
+        $this->shopPhone = $shopPhone;
+        $this->shopComment = $shopComment;
     }
 
     /**
@@ -46,7 +61,7 @@ class API
      */
     private function getSessionId()
     {
-        if ( empty( $this->url) && empty( $this->login ) &&empty( $this->password ) )
+        if ( empty( $this->url) || empty( $this->login ) || empty( $this->password ) || empty( $this->ikn ) )
         {
             throw new NoСredentialsException( __( 'Не указаны данные подключения к серверу!', IN_WC_CRM ) );
         }
@@ -62,12 +77,12 @@ class API
             'headers'   => array('Content-Type' => 'application/json'),
             'body'      => $credentials
         );
-        $response = wp_remote_post( $url . '/login', $args );
+        $response = wp_remote_post( $this->url . '/login', $args );
 
         // проверка ошибки
         if ( is_wp_error( $response ) ) 
         {
-            throw new LoginException( __( 'Ошибка авторизации на сервере: ', IN_WC_CRM ) . $response->get_error_message() );
+            throw new LoginException( __( 'Ошибка подключения к серверу: ', IN_WC_CRM ) . $response->get_error_message() );
         }
         $responseObj = json_decode( $response['body'] );
         if ( $responseObj->ErrorMessage )
@@ -114,7 +129,7 @@ class API
         );
 
         // Отправляем запрос
-        $response = wp_remote_post( $url . '/CreateShipment', $args );
+        $response = wp_remote_post( $this->url . '/CreateShipment', $args );
 
         // проверка ошибки
         if ( is_wp_error( $response ) ) 
@@ -146,7 +161,7 @@ class API
     {
         // Данные
         $requestId = apply_filters( 'inwccrm_pickpoint_requestId', sha1( microtime() . __CLASS__ ), $order );   //<Идентификатор запроса, используемый для ответа. Указывайте уникальное число (50 символов)>
-        $ikn =  apply_filters( 'inwccrm_pickpoint_ikn', $this->getParam( 'pickpoint-api-ikn', '' ) ) ; //<ИКН – номер договора (10 символов)>
+        $ikn =  apply_filters( 'inwccrm_pickpoint_ikn', $this->ikn ) ; //<ИКН – номер договора (10 символов)>
         if ( empty( $ikn ) ) return false;
 
         // Пользователь
@@ -183,11 +198,11 @@ class API
 
         // Магазин
         $shopName = apply_filters( 'inwccrm_pickpoint_shopName', get_option( 'blogname' ) );
-        $shopManagerName = apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->getParam( 'pickpoint-shopManagerName', '' ) );
-        $shopOrganization = apply_filters( 'inwccrm_pickpoint_shopOrganization', $this->getParam( 'pickpoint-shopOrganization', '' ) );
-        $shopPhone = preg_replace('/[\s\-\(\)\.]/', '', $this->getParam( 'pickpoint-shopPhone', '' ) );
+        $shopManagerName = apply_filters( 'inwccrm_pickpoint_shopManagerName', $this->shopManagerName );
+        $shopOrganization = apply_filters( 'inwccrm_pickpoint_shopOrganization', $this->shopOrganization );
+        $shopPhone = preg_replace('/[\s\-\(\)\.]/', '', $this->shopPhone );
         $shopPhone = apply_filters( 'inwccrm_pickpoint_shopPhone', $shopPhone  );
-        $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->getParam( 'pickpoint-shopComment', '' ) );
+        $shopComment = apply_filters( 'inwccrm_pickpoint_shopComment', $this->shopComment );
         
         // The main address pieces: https://wordpress.stackexchange.com/questions/319346/woocommerce-get-physical-store-address
         $store_address     = apply_filters( 'inwccrm_pickpoint_store_address', get_option( 'woocommerce_store_address' ) );

@@ -4,6 +4,11 @@
  */
 namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
+use IN_WC_CRM\Extensions\PickPoint\API as API;
+use \IN_WC_CRM\Extensions\PickPoint\EmptyOrderIDsException as EmptyOrderIDsException;
+use \IN_WC_CRM\Extensions\PickPoint\NoOrdersException as NoOrdersException;
+use \WC_Order as WC_Order;
+use \Exception as Exception;
 
 require 'API.php';
 
@@ -21,6 +26,7 @@ class PickPoint extends Base
 		
         add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
+        add_action( 'wp_ajax_pickpoint_send_orders', array( $this, 'sendOrders' ) );
     }
 
     /**
@@ -91,6 +97,107 @@ class PickPoint extends Base
      */
     public function enqueueScripts()
     {
+        $scriptID = IN_WC_CRM . '-pickpoint';
+        wp_register_script( 
+            $scriptID, 
+            Plugin::get()->url . 'extensions/PickPoint/js/pickpoint.js', 
+            array( 'jquery' ),
+            Plugin::get()->version, 
+            true );
+        wp_enqueue_script( $scriptID );
 
+        // Параметры для скриптов
+        $objectName = 'IN_WC_CRM_Pickpoint';
+        $data = array(
+            'noRowsSelected' => __( 'Необходимо выбрать один или несколько заказов', IN_WC_CRM ),		
+        );
+        wp_localize_script( $scriptID, $objectName, $data );        
+    }
+    
+    /**
+     * Максимальное число заказов из БД 
+     */
+    const ORDER_LIMIT = 250;
+
+    /**
+     * AJAX запрос на отправку данных
+     */
+    public function sendOrders()
+    {
+        try
+        {
+            // Подключение
+            $api = new API(
+                $this->getParam( 'pickpoint-api-endpoint', ''),         // URL
+                $this->getParam( 'pickpoint-api-login', ''),            // Login
+                $this->getParam( 'pickpoint-api-password', ''),         // Password
+                $this->getParam( 'pickpoint-api-ikn', '' ),             // IKN
+                $this->getParam( 'pickpoint-shopManagerName', '' ),     // Менеджер
+                $this->getParam( 'pickpoint-shopOrganization', '' ),    // Менеджер
+                $this->getParam( 'pickpoint-shopPhone', '' ),           // Телефон
+                $this->getParam( 'pickpoint-shopComment', '' )          // Комментарий
+            );
+
+            // ID заказов для отправки
+            $idsString = ( isset( $_POST['ids'] ) ) ? trim( sanitize_text_field( $_POST['ids'] ) ) : '';
+            if ( empty( $idsString ) ) throw new EmptyOrderIDsException( __( 'ID заказов не переданы', IN_WC_CRM ) );
+            
+
+            // Запрос выбранных заказов
+            $args = array(
+                'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
+                'return'    => 'objects',
+                'post__in'  => explode(',', $idsString)      
+            );
+            $orders = wc_get_orders( $args );
+            if ( empty( $orders ) ) throw new NoOrdersException( __( 'Указанные заказы не найдены:', IN_WC_CRM ) . ' ' . $idsString );
+
+            // Передача заказов
+            $result = $api->send( $orders );
+
+            $resultStr = '';
+            if ( count( $result['created'] > 0 ) ) 
+            { 
+                $resultStr .= __( 'Переданные заказы:', IN_WC_CRM );
+				foreach( $result['created'] as $sending )
+				{
+					$currentOrder = new WC_Order( $sending->SenderCode );
+					$currentOrder->add_order_note( 
+						__( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+						__( 'Отправление создано', IN_WC_CRM ) . ': ' . 
+						$sending->InvoiceNumber
+					);
+					$currentOrder->add_meta_data( __( 'Pikpoint InvoiceNumber', IN_WC_CRM ),  $sending->InvoiceNumber );
+					$resultStr .= $sending->SenderCode . ',';
+                }
+                $resultStr .= PHP_EOL;             
+            }
+
+            if ( count( $result['rejected'] > 0 ) ) 
+            { 
+                $resultStr .= __( 'Отклоненные заказы:', IN_WC_CRM );
+				foreach( $result['rejected'] as $sending )
+				{
+					$currentOrder = new WC_Order( $sending->SenderCode );
+					$currentOrder->add_order_note( 
+						__( 'Pikpoint', IN_WC_CRM ) . ': ' . 
+						__( 'Ошибка', IN_WC_CRM ) . ': ' . 
+						$sending->ErrorMessage
+					);					
+					$resultStr .= $sending->ErrorMessage .  ' ' . $sending->SenderCode . PHP_EOL;
+				}
+                $resultStr .= PHP_EOL;             
+            }
+
+            echo $resultStr;
+            wp_die();
+        }
+        catch (Exception $e) 
+        {
+            // Возникли ошибки
+            esc_html_e( 'Ошибка!', IN_WC_CRM );
+            echo ' ', $e->getMessage();
+            wp_die();  
+        }
     }
 }
