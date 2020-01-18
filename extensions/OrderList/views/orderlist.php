@@ -46,6 +46,9 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
 
 <!-- Элементы управления действиями с заказами -->
 <section id="orderListActions" style="text-align: center">
+    <style>
+        #orderListActions button { margin: 5px }
+    </style>
     <?php do_action( 'inwccrm_orderlist_actions_before' ) ?>
     <button id="btnLoadOrders"><i class="fas fa-search"></i>&nbsp;<?php esc_html_e( 'Найти заказы', IN_WC_CRM ); ?></button>
     <?php do_action( 'inwccrm_orderlist_actions_after' ) ?>

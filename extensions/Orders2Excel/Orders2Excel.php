@@ -35,7 +35,7 @@ class Orders2Excel extends Base
      */
     public function getDescription()
     {
-        return __( 'Выггузка выбранных заказов в Excel', IN_WC_CRM );
+        return __( 'Выгрузка выбранных заказов в Excel', IN_WC_CRM );
     }
 
     /**
