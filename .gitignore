@@ -5,5 +5,5 @@
 *.vscode
 *.old
 *.old.php
-
+*.old.js
 
