@@ -488,7 +488,7 @@ END_OF_PACKET;
         $sum = apply_filters( 'inwccrm_pickpoint_sum', $order->get_total(), $order );
 
         // Доставка TODO: Сделать чтение налогов из WC
-        $DeliveryVat = apply_filters( 'inwccrm_pickpoint_DeliveryVat', 0, $order );
+        $DeliveryVat = apply_filters( 'inwccrm_pickpoint_DeliveryVat', null, $order );
         $DeliveryFee = apply_filters( 'inwccrm_pickpoint_DeliveryFee', 0, $order );
         $InsuareValue = apply_filters( 'inwccrm_pickpoint_InsuareValue', 0, $order );
         $DeliveryMode = apply_filters( 'inwccrm_pickpoint_DeliveryMode', 1, $order );
