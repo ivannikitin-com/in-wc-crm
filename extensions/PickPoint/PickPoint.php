@@ -128,14 +128,14 @@ class PickPoint extends Base
         {
             // Подключение
             $api = new API(
-                $this->getParam( 'pickpoint-api-endpoint', ''),         // URL
-                $this->getParam( 'pickpoint-api-login', ''),            // Login
-                $this->getParam( 'pickpoint-api-password', ''),         // Password
-                $this->getParam( 'pickpoint-api-ikn', '' ),             // IKN
-                $this->getParam( 'pickpoint-shopManagerName', '' ),     // Менеджер
-                $this->getParam( 'pickpoint-shopOrganization', '' ),    // Менеджер
-                $this->getParam( 'pickpoint-shopPhone', '' ),           // Телефон
-                $this->getParam( 'pickpoint-shopComment', '' )          // Комментарий
+                $this->getParam( 'pickpoint-api-endpoint', '' ),         // URL
+                $this->getParam( 'pickpoint-api-login', '' ),            // Login
+                $this->getParam( 'pickpoint-api-password', '' ),         // Password
+                $this->getParam( 'pickpoint-api-ikn', '' ),              // IKN
+                $this->getParam( 'pickpoint-shopManagerName', '' ),      // Менеджер
+                $this->getParam( 'pickpoint-shopOrganization', '' ),     // Менеджер
+                $this->getParam( 'pickpoint-shopPhone', '' ),            // Телефон
+                $this->getParam( 'pickpoint-shopComment', '' )           // Комментарий
             );
 
             // ID заказов для отправки
@@ -147,7 +147,7 @@ class PickPoint extends Base
             $args = array(
                 'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
                 'return'    => 'objects',
-                'post__in'  => explode(',', $idsString)      
+                'post__in'  => explode(',', $idsString )      
             );
             $orders = wc_get_orders( $args );
             if ( empty( $orders ) ) throw new NoOrdersException( __( 'Указанные заказы не найдены:', IN_WC_CRM ) . ' ' . $idsString );

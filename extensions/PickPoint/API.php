@@ -54,6 +54,11 @@ class API
         $this->shopOrganization = $shopOrganization;
         $this->shopPhone = $shopPhone;
         $this->shopComment = $shopComment;
+
+        // Убираем из URL финальный слеш
+        if ( substr( $this->url, -1 ) == '/' )
+            $this->url = substr( $this->url, 0, strlen( $this->url ) -1 );
+
     }
 
     /**
@@ -62,7 +67,7 @@ class API
     private function getSessionId()
     {
         if ( empty( $this->url) || empty( $this->login ) || empty( $this->password ) || empty( $this->ikn ) )
-        {
+        {         
             throw new NoСredentialsException( __( 'Не указаны данные подключения к серверу!', IN_WC_CRM ) );
         }
 
@@ -71,25 +76,42 @@ class API
             'Login' => $this->login,
             'Password' => $this->password,
         ) );
+
         $args = array(
             'timeout'   => 60,
             'blocking'  => true,   
             'headers'   => array('Content-Type' => 'application/json'),
             'body'      => $credentials
         );
+
+        Plugin::get()->log( __( 'Авторизация на сервере', IN_WC_CRM ), self::LOGFILE );
+        Plugin::get()->log( $args, self::LOGFILE );
+
         $response = wp_remote_post( $this->url . '/login', $args );
 
         // проверка ошибки
         if ( is_wp_error( $response ) ) 
         {
+            Plugin::get()->log( __( 'Ошибка подключения к серверу: ', IN_WC_CRM ), self::LOGFILE );
+            Plugin::get()->log( $response, self::LOGFILE );             
             throw new LoginException( __( 'Ошибка подключения к серверу: ', IN_WC_CRM ) . $response->get_error_message() );
         }
+        
         $responseObj = json_decode( $response['body'] );
-        if ( $responseObj->ErrorMessage )
+        if ( isset( $responseObj->ErrorMessage ) )
         {
+            Plugin::get()->log( __( 'Ошибка авторизации на сервере: ', IN_WC_CRM ), self::LOGFILE );
+            Plugin::get()->log( $response, self::LOGFILE );              
             throw new LoginException( __( 'Ошибка авторизации на сервере: ', IN_WC_CRM ) . $responseObj->ErrorMessage );
         }
         
+        if ( ! isset( $responseObj->SessionId ) )
+        {
+            Plugin::get()->log( __( 'SessionID при авторизации не получен! ', IN_WC_CRM ), self::LOGFILE );
+            Plugin::get()->log( $response, self::LOGFILE );            
+            throw new LoginException( __( 'SessionID при авторизации не получен! ', IN_WC_CRM ) );
+        }
+
         return $responseObj->SessionId;             
     }
 
