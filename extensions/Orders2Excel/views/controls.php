@@ -1,0 +1,1 @@
+<button id="btnOrder2Excel"><i class="far fa-file-excel"></i>&nbsp;<?php esc_html_e( 'Excel', IN_WC_CRM ); ?></button>

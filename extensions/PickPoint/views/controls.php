@@ -1,0 +1,1 @@
+<button id="btnPickPoint"><i class="fas fa-truck"></i>&nbsp;<?php esc_html_e( 'PickPoint', IN_WC_CRM ); ?></button>

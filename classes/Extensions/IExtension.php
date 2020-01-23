@@ -15,6 +15,12 @@ interface IExtension
     public function getTitle();
 
     /**
+     * Возвращает краткое описание расширения
+     * @return string
+     */
+    public function getDescription();    
+
+    /**
      * Возвращает true если этому расширению требуются настройки
      * @return bool
      */
