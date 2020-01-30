@@ -1,3 +1,0 @@
-[submodule "asserts/PhpSpreadsheet"]
-	path = asserts/PhpSpreadsheet
-	url = https://github.com/PHPOffice/PhpSpreadsheet.git
