@@ -20,30 +20,7 @@ jQuery(function($){
 			return;
         }
 
-        // Передаем данные на сервер
-        var ajaxRequest = {
-            action: 'orders2excel_prepare_orders',
-            ids: selectedIds.join(',')
-        };
-		$.post(ajaxurl, ajaxRequest)
-			.done(function(response){
-                var result = JSON.parse(response);
-                if (result){
-                    if (result.status == 'success'){
-                        window.location.assign(result.url);
-                    }
-                    else{
-                        alert(result.message);
-                    }
-                }
-                else{
-                   alert( response ); 
-                }
-                $('#loadBanner').hide('fast'); 				
-			})
-			.fail(function(xhr, status, error){
-                $('#loadBanner').hide('fast');
-                alert( status + ': ' + error + ': ' + xhr.responseText );
-			});             
+        window.location.assign(IN_WC_CRM_Orders2Excel.downloadUrl + selectedIds.join(','));
+        $('#loadBanner').hide('fast');             
     });
 });
