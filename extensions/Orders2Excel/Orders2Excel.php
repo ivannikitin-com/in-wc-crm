@@ -116,6 +116,33 @@ class Orders2Excel extends Base
         $idsString = ( isset( $_GET['ids'] ) ) ? trim( sanitize_text_field( $_GET['ids'] ) ) : '';
         $orders = $this->getOrders( explode(',', $idsString ) );
 
+        // Получим все данные каждого заказа
+        $items = array();
+        foreach ( $orders as $order )
+        {
+            $orderItems = $order->get_items();
+            foreach( $orderItems as $item_id => $item_data )
+            {
+                $product_name = $item_data['name'];
+                $item_quantity = $order->get_item_meta($item_id, '_qty', true);
+                $product = wc_get_product( $item_data->get_product_id() );
+                $item_sku = $product->get_sku();
+
+                if ( ! array_key_exists( $item_sku, $orderItems ) )
+                {
+                    $orderItems[$item_sku] = array(
+                        'sku' => $item_sku,
+                        'name' => $product_name,
+                        'quantity'  => 1
+                    );
+                }
+                else
+                {
+                    $orderItems[$item_sku]['quantity']++;
+                }
+            }
+        } 
+
         // Создаем объект класса PHPExcel
         $xls = new PHPExcel();
         // Устанавливаем индекс активного листа
@@ -123,9 +150,39 @@ class Orders2Excel extends Base
         // Получаем активный лист
         $sheet = $xls->getActiveSheet();
         // Подписываем лист
-        $sheet->setTitle('Orders');
-        // Вставляем текст в ячейку A1
-        $sheet->setCellValue("A1", 'Таблица умножения');
+        $sheet->setTitle('Order Items');
+
+        // Заголовок таблицы
+        $headers = apply_filters( 'inwccrm_orders2excel_table_header', array(
+            'A1' => __( 'ISBN', IN_WC_CRM ),
+            'B1' => __( 'ШтрихКод', IN_WC_CRM ),
+            'C1' => __( 'Наименование', IN_WC_CRM ),
+            'D1' => __( 'Количество', IN_WC_CRM ),
+            'E1' => __( 'Код', IN_WC_CRM ),
+            'F1' => __( 'Код С-Пб', IN_WC_CRM )
+        ) );
+        foreach ( $headers as $cell => $value )
+        {
+            $sheet->setCellValue( $cell, $value );
+        }
+
+        // Заполним данные со второго ряда
+        $row = 2;
+        foreach ( $orderItems as $orderItem )
+        {
+            $rowData = apply_filters( 'inwccrm_orders2excel_table_row_data', array(
+                'C' . $row => $orderItem['name'],
+                'D' . $row => $orderItem['quantity'],
+                'E' . $row => $orderItem['sku']
+            ), $orderItem, $row );
+
+            // Внесем эти данные
+            foreach ( $rowData as $cell => $value )
+            {
+                $sheet->setCellValue( $cell, $value );
+            } 
+            $row++;
+        }
 
         // Заголовки
         header( 'Content-Description: File Transfer' );
