@@ -25,7 +25,8 @@ class Orders2Excel extends Base
 		
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ) );
-        add_action( 'wp_ajax_orders2excel_send_orders', array( $this, 'processOrders' ) );
+        add_action( 'wp_ajax_orders2excel_prepare_orders', array( $this, 'prepareOrders' ) );
+        add_action( 'wp_ajax_orders2excel_get_orders', array( $this, 'getFile' ) );
     }
 
     /**
@@ -55,6 +56,11 @@ class Orders2Excel extends Base
     }
 
     /**
+     * Максимальное число заказов из БД 
+     */
+    const NONCE = 'Orders2Excel';
+
+    /**
      * Подключает скрипты
      */
     public function enqueueScripts()
@@ -71,7 +77,9 @@ class Orders2Excel extends Base
         // Параметры для скриптов
         $objectName = 'IN_WC_CRM_Orders2Excel';
         $data = array(
-            'noRowsSelected' => __( 'Необходимо выбрать один или несколько заказов', IN_WC_CRM ),		
+            'noRowsSelected' => __( 'Необходимо выбрать один или несколько заказов', IN_WC_CRM ),
+            'error' => __( 'Ошибка!', IN_WC_CRM ),
+            'nonce' => wp_create_nonce( self::NONCE ),
         );
         wp_localize_script( $scriptID, $objectName, $data );        
     }
@@ -82,9 +90,24 @@ class Orders2Excel extends Base
     const ORDER_LIMIT = 250;
 
     /**
+     * Возвращает список заказов по выбранным ID
+     * @param mixed $ids    Массив с выбранными ID
+     */
+    private function getOrders( $ids )
+    {
+        // Запрос выбранных заказов
+        $args = array(
+            'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
+            'return'    => 'objects',
+            'post__in'  => $ids     
+        );
+        return wc_get_orders( $args );
+    }
+
+    /**
      * AJAX запрос на обработку данных
      */
-    public function processOrders()
+    public function prepareOrders()
     {
         try
         {
@@ -92,25 +115,43 @@ class Orders2Excel extends Base
             $idsString = ( isset( $_POST['ids'] ) ) ? trim( sanitize_text_field( $_POST['ids'] ) ) : '';
             if ( empty( $idsString ) ) throw new EmptyOrderIDsException( __( 'ID заказов не переданы', IN_WC_CRM ) ); 
                
-            // Запрос выбранных заказов
-            $args = array(
-                'limit'     => apply_filters( 'inwccrm_pickpoint_datatable_order_limit', self::ORDER_LIMIT ),
-                'return'    => 'objects',
-                'post__in'  => explode(',', $idsString )      
-            );
-            $orders = wc_get_orders( $args );
+            $orders = $this->getOrders( explode(',', $idsString ) );
             if ( empty( $orders ) ) throw new NoOrdersException( __( 'Указанные заказы не найдены:', IN_WC_CRM ) . ' ' . $idsString );
 
-            echo var_export( $orders, true );
+            echo json_encode( array(
+                'status' => 'success',
+                'url' => admin_url( 'admin-ajax.php?action=orders2excel_get_orders' ) . '&ids=' . $idsString,
+            ));
             wp_die();
         }
         catch (Exception $e) 
         {
             // Возникли ошибки
-            esc_html_e( 'Ошибка!', IN_WC_CRM );
-            echo ' ', $e->getMessage();
+            echo json_encode( array(
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ));            
             wp_die();  
         }        
+    } 
+
+    /**
+     * AJAX запрос на генерацию файла
+     */
+    public function getFile()
+    {
+        // Имя файла
+        $fileName = 'orders-' . date('Y-m-d--H-i') . '.txt';
+        
+        // Получаем заказы
+        $idsString = ( isset( $_GET['ids'] ) ) ? trim( sanitize_text_field( $_GET['ids'] ) ) : '';
+        $orders = $this->getOrders( explode(',', $idsString ) );
+
+        header( 'Content-Description: File Transfer' );
+        header( 'Content-Disposition: attachment; filename=' . $fileName );
+        header( 'Content-Transfer-Encoding: binary' );
+        echo $idsString;
+        wp_die();
     }    
 
 }

@@ -4,6 +4,8 @@
 jQuery(function($){
     // Кнопка выгрузки
     $('#btnPickPoint').on('click', function(){
+        $('#loadBanner').show('fast');
+
         // Читаем список ID выделенных заказов
         var selectedIds = [];
         var selectedRows = $('#orderTable').DataTable().rows('.selected').data();

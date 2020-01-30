@@ -5,6 +5,8 @@
 jQuery(function($){
     // Кнопка выгрузки
     $('#btnOrder2Excel').on('click', function(){
+        $('#loadBanner').show('fast');
+        
         // Читаем список ID выделенных заказов
         var selectedIds = [];
         var selectedRows = $('#orderTable').DataTable().rows('.selected').data();
@@ -20,17 +22,28 @@ jQuery(function($){
 
         // Передаем данные на сервер
         var ajaxRequest = {
-            action: 'orders2excel_send_orders',
+            action: 'orders2excel_prepare_orders',
             ids: selectedIds.join(',')
         };
 		$.post(ajaxurl, ajaxRequest)
 			.done(function(response){
-            	alert( response );
-           		$('#loadBanner').hide('fast'); 				
+                var result = JSON.parse(response);
+                if (result){
+                    if (result.status == 'success'){
+                        window.location.assign(result.url);
+                    }
+                    else{
+                        alert(result.message);
+                    }
+                }
+                else{
+                   alert( response ); 
+                }
+                $('#loadBanner').hide('fast'); 				
 			})
 			.fail(function(xhr, status, error){
-            	alert( status + ': ' + error + ': ' + xhr.responseText );
-           		$('#loadBanner').hide('fast'); 				
+                $('#loadBanner').hide('fast');
+                alert( status + ': ' + error + ': ' + xhr.responseText );
 			});             
     });
 });
