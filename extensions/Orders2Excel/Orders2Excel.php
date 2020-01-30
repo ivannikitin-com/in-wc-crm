@@ -9,7 +9,8 @@ use \IN_WC_CRM\Plugin as Plugin;
 use \IN_WC_CRM\Extensions\Orders2Excel\EmptyOrderIDsException as EmptyOrderIDsException;
 use \IN_WC_CRM\Extensions\Orders2Excel\NoOrdersException as NoOrdersException;
 
-require 'Exceptions.php';
+
+require __DIR__ . '/Exceptions.php';
 
 class Orders2Excel extends Base
 {
@@ -146,6 +147,7 @@ class Orders2Excel extends Base
         // Получаем заказы
         $idsString = ( isset( $_GET['ids'] ) ) ? trim( sanitize_text_field( $_GET['ids'] ) ) : '';
         $orders = $this->getOrders( explode(',', $idsString ) );
+
 
         header( 'Content-Description: File Transfer' );
         header( 'Content-Disposition: attachment; filename=' . $fileName );
