@@ -7,10 +7,13 @@ use \WC_Order as WC_Order;
 use \Exception as Exception;
 use \IN_WC_CRM\Plugin as Plugin;
 use \IN_WC_CRM\Extensions\Orders2Excel\EmptyOrderIDsException as EmptyOrderIDsException;
-use \IN_WC_CRM\Extensions\Orders2Excel\NoOrdersException as NoOrdersException;
+use \PHPExcel as PHPExcel;
+use \PHPExcel_Writer_Excel5 as PHPExcel_Writer_Excel5;
 
 
 require __DIR__ . '/Exceptions.php';
+require __DIR__ . '/../../asserts/PHPExcel-1.8/Classes/PHPExcel.php';
+require __DIR__ . '/../../asserts/PHPExcel-1.8/Classes/PHPExcel/Writer/Excel5.php';
 
 class Orders2Excel extends Base
 {
@@ -138,21 +141,36 @@ class Orders2Excel extends Base
 
     /**
      * AJAX запрос на генерацию файла
+     * https://habr.com/ru/post/245233/
      */
     public function getFile()
     {
         // Имя файла
-        $fileName = 'orders-' . date('Y-m-d--H-i') . '.txt';
+        $fileName = 'orders-' . date('Y-m-d--H-i') . '.xls';
         
         // Получаем заказы
         $idsString = ( isset( $_GET['ids'] ) ) ? trim( sanitize_text_field( $_GET['ids'] ) ) : '';
         $orders = $this->getOrders( explode(',', $idsString ) );
 
+        // Создаем объект класса PHPExcel
+        $xls = new PHPExcel();
+        // Устанавливаем индекс активного листа
+        $xls->setActiveSheetIndex(0);
+        // Получаем активный лист
+        $sheet = $xls->getActiveSheet();
+        // Подписываем лист
+        $sheet->setTitle('Orders');
+        // Вставляем текст в ячейку A1
+        $sheet->setCellValue("A1", 'Таблица умножения');
 
+        // Заголовки
         header( 'Content-Description: File Transfer' );
         header( 'Content-Disposition: attachment; filename=' . $fileName );
         header( 'Content-Transfer-Encoding: binary' );
-        echo $idsString;
+        
+        // Выводим содержимое файла
+        $objWriter = new PHPExcel_Writer_Excel5($xls);
+        $objWriter->save('php://output');
         wp_die();
     }    
 
