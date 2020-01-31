@@ -133,12 +133,12 @@ class Orders2Excel extends Base
                     $items[$item_sku] = array(
                         'sku' => $item_sku,
                         'name' => $product_name,
-                        'quantity'  => 1
+                        'quantity'  => $item_quantity
                     );
                 }
                 else
                 {
-                    $items[$item_sku]['quantity']++;
+                    $items[$item_sku]['quantity'] += $item_quantity;
                 }
             }
         } 
