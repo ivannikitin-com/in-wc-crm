@@ -124,13 +124,13 @@ class Orders2Excel extends Base
             foreach( $orderItems as $item_id => $item_data )
             {
                 $product_name = $item_data['name'];
-                $item_quantity = $order->get_item_meta($item_id, '_qty', true);
+                $item_quantity = wc_get_order_item_meta($item_id, '_qty', true);
                 $product = wc_get_product( $item_data->get_product_id() );
                 $item_sku = $product->get_sku();
 
-                if ( ! array_key_exists( $item_sku, $orderItems ) )
+                if ( ! array_key_exists( $item_sku, $items ) )
                 {
-                    $orderItems[$item_sku] = array(
+                    $items[$item_sku] = array(
                         'sku' => $item_sku,
                         'name' => $product_name,
                         'quantity'  => 1
@@ -138,7 +138,7 @@ class Orders2Excel extends Base
                 }
                 else
                 {
-                    $orderItems[$item_sku]['quantity']++;
+                    $items[$item_sku]['quantity']++;
                 }
             }
         } 
@@ -168,7 +168,7 @@ class Orders2Excel extends Base
 
         // Заполним данные со второго ряда
         $row = 2;
-        foreach ( $orderItems as $orderItem )
+        foreach ( $items as $orderItem )
         {
             $rowData = apply_filters( 'inwccrm_orders2excel_table_row_data', array(
                 'C' . $row => $orderItem['name'],
