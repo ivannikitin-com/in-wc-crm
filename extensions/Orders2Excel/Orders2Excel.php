@@ -1,6 +1,6 @@
 <?php
 /**
- * Расширение выводит списко пользователей
+ * Расширение выводит позиции заказов в Excel
  */
 namespace IN_WC_CRM\Extensions;
 use \WC_Order as WC_Order;
@@ -16,7 +16,7 @@ class Orders2Excel extends Base
 {
     /**
      * Конструктор класса
-     * Инициализирует свойства класса
+     * Инициализирует свойства класса и хуки
      */
     public function __construct()
     {
@@ -35,7 +35,7 @@ class Orders2Excel extends Base
      */
     public function getTitle()
     {
-        return 'Заказы в Excel';
+        return 'Позиции заказов в Excel';
     }
  
     /**
@@ -44,7 +44,7 @@ class Orders2Excel extends Base
      */
     public function getDescription()
     {
-        return __( 'Выгрузка выбранных заказов в Excel', IN_WC_CRM );
+        return __( 'Выгрузка позиций выбранных заказов в Excel', IN_WC_CRM );
     }
 
     /**
@@ -91,6 +91,7 @@ class Orders2Excel extends Base
     /**
      * Возвращает список заказов по выбранным ID
      * @param mixed $ids    Массив с выбранными ID
+     * @return mixed
      */
     private function getOrders( $ids )
     {
@@ -104,19 +105,13 @@ class Orders2Excel extends Base
     }
 
     /**
-     * AJAX запрос на генерацию файла
-     * https://habr.com/ru/post/245233/
+     * Возвращает массив элементов для вывода в Эксель
+     * Группирует элементы по SKU каждого элемента
+     * @param mixed $orders    Массив заказов
+     * @return mixed 
      */
-    public function getFile()
+    private function getOrderItems( $orders )
     {
-        // Имя файла
-        $fileName = 'orders-' . date('Y-m-d--H-i') . '.xls';
-        
-        // Получаем заказы
-        $idsString = ( isset( $_GET['ids'] ) ) ? trim( sanitize_text_field( $_GET['ids'] ) ) : '';
-        $orders = $this->getOrders( explode(',', $idsString ) );
-
-        // Получим все данные каждого заказа
         $items = array();
         foreach ( $orders as $order )
         {
@@ -141,7 +136,18 @@ class Orders2Excel extends Base
                     $items[$item_sku]['quantity'] += $item_quantity;
                 }
             }
-        } 
+        }
+        return $items;
+    }
+
+    /**
+     * AJAX запрос на генерацию файла
+     * https://habr.com/ru/post/245233/
+     */
+    public function getFile()
+    {
+        // Имя файла
+        $fileName = apply_filters( 'inwccrm_orders2excel_filename', 'orders-' . date('Y-m-d--H-i') . '.xls' );
 
         // Создаем объект класса PHPExcel
         $xls = new PHPExcel();
@@ -154,26 +160,30 @@ class Orders2Excel extends Base
 
         // Заголовок таблицы
         $headers = apply_filters( 'inwccrm_orders2excel_table_header', array(
-            'A1' => __( 'ISBN', IN_WC_CRM ),
-            'B1' => __( 'ШтрихКод', IN_WC_CRM ),
-            'C1' => __( 'Наименование', IN_WC_CRM ),
-            'D1' => __( 'Количество', IN_WC_CRM ),
-            'E1' => __( 'Код', IN_WC_CRM ),
-            'F1' => __( 'Код С-Пб', IN_WC_CRM )
+            'A1' => __( 'Артикул', IN_WC_CRM ),
+            'B1' => __( 'Наименование', IN_WC_CRM ),
+            'C1' => __( 'Количество', IN_WC_CRM )
         ) );
         foreach ( $headers as $cell => $value )
         {
             $sheet->setCellValue( $cell, $value );
         }
 
+        // Получаем заказы
+        $idsString = ( isset( $_GET['ids'] ) ) ? trim( sanitize_text_field( $_GET['ids'] ) ) : '';
+        $orders = $this->getOrders( explode(',', $idsString ) );
+
+        // Получим массив элементов для вывода
+        $items = apply_filters( 'inwccrm_orders2excel_table_data', $this->getOrderItems( $orders ) );
+
         // Заполним данные со второго ряда
         $row = 2;
         foreach ( $items as $orderItem )
         {
             $rowData = apply_filters( 'inwccrm_orders2excel_table_row_data', array(
-                'C' . $row => $orderItem['name'],
-                'D' . $row => $orderItem['quantity'],
-                'E' . $row => $orderItem['sku']
+                'A' . $row => $orderItem['sku'],
+                'B' . $row => $orderItem['name'],
+                'C' . $row => $orderItem['quantity']
             ), $orderItem, $row );
 
             // Внесем эти данные
@@ -184,7 +194,7 @@ class Orders2Excel extends Base
             $row++;
         }
 
-        // Заголовки
+        // Заголовки ответа
         header( 'Content-Description: File Transfer' );
         header( 'Content-Disposition: attachment; filename=' . $fileName );
         header( 'Content-Transfer-Encoding: binary' );
