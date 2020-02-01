@@ -174,7 +174,7 @@ class Orders2Excel extends Base
         $orders = $this->getOrders( explode(',', $idsString ) );
 
         // Получим массив элементов для вывода
-        $items = apply_filters( 'inwccrm_orders2excel_table_data', $this->getOrderItems( $orders ) );
+        $items = apply_filters( 'inwccrm_orders2excel_table_data', $this->getOrderItems( $orders ), $orders );
 
         // Заполним данные со второго ряда
         $row = 2;
