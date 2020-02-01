@@ -15,7 +15,7 @@ class DeliveryFields extends Base
         parent::__construct();
         if ( ! $this->isEnabled() ) 
             return;
-        
+            add_filter( 'woocommerce_admin_shipping_fields', array( $this, 'addShippingFields' ) );
     }
 
     /**
@@ -24,15 +24,34 @@ class DeliveryFields extends Base
      */
     public function getTitle()
     {
-        return 'Поля желаемой доставки';
+        return __( 'Поля желаемой доставки', IN_WC_CRM );
     }
  
      /**
      * Возвращает блок настроек в виде массима. Пустой массив -- настроек нет
-     * @return string
+     * @return mixed
      */   
     public function getSettings()
     {
         return array();
     }
+
+     /**
+     * Добавляет в массив полей доставки новые поля
+     * @param mixed $shippingFileds Стандартные поля доставки
+     * @return string
+     */   
+    public function addShippingFields( $shippingFileds )
+    {
+        return array_merge( $shippingFileds, array(
+            'delivery_date' => array(
+                'label' => __( 'Дата доставки', IN_WC_CRM ),
+                'show'  => true,
+            ),
+            'delivery_time' => array(
+                'label' => __( 'Время доставки', IN_WC_CRM ),
+                'show'  => true,
+            ),                        
+        ) );
+    }    
 }
