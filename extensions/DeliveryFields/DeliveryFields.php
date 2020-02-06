@@ -26,6 +26,15 @@ class DeliveryFields extends Base
     {
         return __( 'Поля желаемой доставки', IN_WC_CRM );
     }
+
+    /**
+     * Возвращает описание расширения
+     * @return string
+     */
+    public function getDescription()
+    {
+        return __( 'Добавление полей времени доставки в заказ', IN_WC_CRM );
+    }    
  
      /**
      * Возвращает блок настроек в виде массима. Пустой массив -- настроек нет
