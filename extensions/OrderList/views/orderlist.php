@@ -5,6 +5,13 @@ $shippingMethods = array_merge(
     $this->getShippingMethods()
 );
 
+// Методы оплаты
+$paymentMethods = array_merge(
+    array('_all' => __( 'Все методы', IN_WC_CRM )), 
+    $this->getPaymentMethods()
+);
+
+
 // Статусы заказов
 $orderStatuses = array_merge(
     array('_all' => __( 'Все статусы', IN_WC_CRM )), 
@@ -25,6 +32,7 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
       <label for="dateTo"><?php esc_html_e( 'Конечная дата', IN_WC_CRM ); ?></label>
       <input id="dateTo" type="text" class="datePicker">
   </span>
+  <hr>
   <span>
       <label for="shipping_method"><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></label>
       <select id="shipping_method">
@@ -34,6 +42,14 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
       </select>
   </span>
   <span>
+      <label for="payment_method"><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></label>
+      <select id="payment_method">
+        <?php foreach ( $paymentMethods as $methodCode => $methodTitle ): ?>
+            <option value="<?php echo $methodCode?>"><?php echo $methodTitle ?></option>
+        <?php endforeach ?>
+      </select>
+  </span>  
+  <span>
       <label for="order_status"><?php esc_html_e( 'Статус заказа', IN_WC_CRM ); ?></label>
       <select id="order_status">
         <?php foreach ( $orderStatuses as $statusCode => $statusTitle ): ?>
@@ -41,9 +57,8 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
         <?php endforeach ?>
       </select>
   </span>
-
 </section>
-
+<hr>
 <!-- Элементы управления действиями с заказами -->
 <section id="orderListActions" style="text-align: center">
     <style>

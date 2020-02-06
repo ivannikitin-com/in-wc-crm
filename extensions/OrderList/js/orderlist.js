@@ -45,12 +45,19 @@ jQuery(function ($){
             ajaxRequest['order_status'] = status;
         }
 
-         // Метод доставки
-         var shipping_method = $('#shipping_method').val();
-         if (shipping_method !== '_all' )
-         {
-             ajaxRequest['shipping_method'] = shipping_method;
-         }
+        // Метод доставки
+        var shipping_method = $('#shipping_method').val();
+        if (shipping_method !== '_all' )
+        {
+            ajaxRequest['shipping_method'] = shipping_method;
+        }
+
+        // Метод оплаты
+        var payment_method = $('#payment_method').val();
+        if (payment_method !== '_all' )
+        {
+            ajaxRequest['payment_method'] = payment_method;
+        }
 
         // Дата начала
         var dateFrom = $('#dateFrom').val();

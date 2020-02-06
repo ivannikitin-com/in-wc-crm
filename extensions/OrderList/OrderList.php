@@ -5,6 +5,7 @@
 namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
 use \WC_Shipping as WC_Shipping;
+use \WC_Payment_Gateways as WC_Payment_Gateways;
 
 class OrderList extends BaseAdminPage
 {
@@ -171,6 +172,22 @@ class OrderList extends BaseAdminPage
     }
 
     /**
+     * Возвращает массив id => title методов оплаты
+     * @return mixed
+     */
+    private function getPaymentMethods()
+    {
+        $paymentMethods = array();
+        $gateways = new WC_Payment_Gateways();
+        foreach( $gateways->get_available_payment_gateways() as $key => $gateway )
+        {
+            if ( $gateway->enabled != 'yes') continue;
+            $paymentMethods[$key] = $gateway->method_title;
+        }
+        return apply_filters( 'inwccrm_orderlist_payment_methods', $paymentMethods );
+    }    
+
+    /**
      * Возвращает массив id => title статусов заказов
      * @return mixed
      */
@@ -187,6 +204,7 @@ class OrderList extends BaseAdminPage
         // Параметры запроса
         $orderStatus = ( isset( $_POST['order_status'] ) ) ? trim( sanitize_text_field( $_POST['order_status'] ) ) : '';
         $shippingMehod = ( isset( $_POST['shipping_method'] ) ) ? trim( sanitize_text_field( $_POST['shipping_method'] ) ) : '';
+        $paymentMethod = ( isset( $_POST['payment_method'] ) ) ? trim( sanitize_text_field( $_POST['payment_method'] ) ) : '';
         $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
         $dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
 
@@ -225,6 +243,7 @@ class OrderList extends BaseAdminPage
         // Запрос заказов
         $result = array();
         $shippingMethods = $this->getShippingMethods();
+        $paymentMethods = $this->getPaymentMethods();
         $orderColumns = $this->getColumns();
         $orders = wc_get_orders( $args );
         foreach ($orders as $order)
@@ -235,7 +254,14 @@ class OrderList extends BaseAdminPage
                 if ( $order->get_shipping_method() != $shippingMethods[ $shippingMehod ] ) 
                     continue;
             }
-            
+
+            if ( ! empty( $paymentMethod ) )
+            {
+                // Фильтруем по методам оплаты
+                if ( $order->get_payment_method_title() != $paymentMethods[ $paymentMethod ] ) 
+                    continue;
+            }
+
             $orderData = array();
             foreach ( $orderColumns as $column => $columnTitle){
                 $orderData[$column] = $this->getOrderColumn( $column, $order );
@@ -246,8 +272,7 @@ class OrderList extends BaseAdminPage
         
         // Передача результатов
         echo json_encode( $result );
-        wp_die();        
-
+        wp_die();
     }    
 
 
