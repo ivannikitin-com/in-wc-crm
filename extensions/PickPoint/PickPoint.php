@@ -162,13 +162,27 @@ class PickPoint extends Base
 				foreach( $result['created'] as $sending )
 				{
 					$currentOrder = new WC_Order( $sending->SenderCode );
-					$currentOrder->add_order_note( 
+                    // Добавим мета-поля
+                    $currentOrder->add_order_note( 
 						__( 'Pikpoint', IN_WC_CRM ) . ': ' . 
 						__( 'Отправление создано', IN_WC_CRM ) . ': ' . 
 						$sending->InvoiceNumber
 					);
-					$currentOrder->add_meta_data( __( 'Pikpoint InvoiceNumber', IN_WC_CRM ),  $sending->InvoiceNumber );
-					$resultStr .= $sending->SenderCode . ',';
+                    $currentOrder->add_meta_data( __( 'Pikpoint InvoiceNumber', IN_WC_CRM ),  $sending->InvoiceNumber );
+                    
+                    // Установим новый статус
+                    $currentStatus = $currentOrder->get_status();
+                    $newStatus = apply_filters( 'inwccrm_pickpoint_set_order_status', $currentStatus, $currentOrder );
+                    if ( $currentStatus != $newStatus )
+                    {
+                        $orderNote = apply_filters( 'inwccrm_pickpoint_set_order_status_note', 
+                            __( 'Статус заказа изменен после успешной отправки Pickpoint', IN_WC_CRM ),
+                            $newStatus, $currentOrder );
+                        $order->update_status( $newStatus, $orderNote );
+                    }
+
+                    // Результат в строку результата
+                    $resultStr .= $sending->SenderCode . ',';
                 }
                 $resultStr .= PHP_EOL;             
             }
