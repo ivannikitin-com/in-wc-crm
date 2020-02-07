@@ -178,7 +178,7 @@ class PickPoint extends Base
                         $orderNote = apply_filters( 'inwccrm_pickpoint_set_order_status_note', 
                             __( 'Статус заказа изменен после успешной отправки Pickpoint', IN_WC_CRM ),
                             $newStatus, $currentOrder );
-                        $order->update_status( $newStatus, $orderNote );
+                        $currentOrder->update_status( $newStatus, $orderNote );
                     }
 
                     // Результат в строку результата
