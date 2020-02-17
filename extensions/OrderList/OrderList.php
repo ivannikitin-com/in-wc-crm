@@ -214,7 +214,7 @@ class OrderList extends BaseAdminPage
             'limit'     => apply_filters( 'inwccrm_orderlist_datatable_order_limit', 100 ),
             'orderby'   => 'date',
             'order'     => 'DESC',
-            'return'    => 'objects',   
+            'return'    => 'objects'
         );
         
         // Статус заказов
@@ -222,6 +222,13 @@ class OrderList extends BaseAdminPage
         {
             $args['status'] = $orderStatus;
         }
+
+        // Метод оплаты
+        if ( ! empty( $paymentMethod ) )
+        {
+            $paymentMethods = $this->getPaymentMethods();
+            $args['payment_method_title'] = $paymentMethods[ $paymentMethod ];
+        }        
 
         // Даты запроса
         if ( $dateFrom && $dateTo )
@@ -243,7 +250,6 @@ class OrderList extends BaseAdminPage
         // Запрос заказов
         $result = array();
         $shippingMethods = $this->getShippingMethods();
-        $paymentMethods = $this->getPaymentMethods();
         $orderColumns = $this->getColumns();
         $orders = wc_get_orders( $args );
         foreach ($orders as $order)
@@ -252,13 +258,6 @@ class OrderList extends BaseAdminPage
             {
                 // Фильтруем по методам доставки
                 if ( $order->get_shipping_method() != $shippingMethods[ $shippingMehod ] ) 
-                    continue;
-            }
-
-            if ( ! empty( $paymentMethod ) )
-            {
-                // Фильтруем по методам оплаты
-                if ( $order->get_payment_method_title() != $paymentMethods[ $paymentMethod ] ) 
                     continue;
             }
 
@@ -273,9 +272,5 @@ class OrderList extends BaseAdminPage
         // Передача результатов
         echo json_encode( $result );
         wp_die();
-    }    
-
-
-
-
+    }
 }
