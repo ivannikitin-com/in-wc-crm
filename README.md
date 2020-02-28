@@ -24,8 +24,8 @@ extensions\MyExt\MyExt.php
 
 ## История версий
 ### 1.4
-* Добавлено расширение PDFInvoices, которое добавляет возмодность печати счетов заказов через плагин [WooCommerce PDF Invoices & Packing Slips](https://ru.wordpress.org/plugins/woocommerce-pdf-invoices-packing-slips/)
-* Добавлено расширение B2CPL, которое добавляет возмодность выгрузки заказов в [B2CPL](https://b2cpl.ru/)
+* Добавлено расширение PDFInvoices, которое добавляет возможность печати счетов заказов через плагин [WooCommerce PDF Invoices & Packing Slips](https://ru.wordpress.org/plugins/woocommerce-pdf-invoices-packing-slips/)
+* Добавлено расширение B2CPL, которое добавляет возможность выгрузки заказов в [B2CPL](https://b2cpl.ru/)
 
 ### 1.3
 * Добавлено расширение DeliveryFields, которое добавляет в заказ поля со временем и датой желаемой доставки

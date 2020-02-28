@@ -1,0 +1,1 @@
+<button id="btnPDFInvoices"><i class="far fa-file-pdf"></i>&nbsp;<?php esc_html_e( 'PDF Счета', IN_WC_CRM ); ?></button>
