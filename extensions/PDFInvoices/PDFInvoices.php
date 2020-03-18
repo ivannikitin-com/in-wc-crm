@@ -42,7 +42,7 @@ class PDFInvoices extends Base
                 apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) return;
         
         // Добавляем кнопку на страницу заказов
-        add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ) );
+        add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 21 );
 
         // Скрипт обработки кнопки и AJAX
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );

@@ -25,7 +25,7 @@ class Orders2Excel extends Base
             return;
 		
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
-        add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ) );
+        add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 22 );
         add_action( 'wp_ajax_orders2excel_get_orders', array( $this, 'getFile' ) );
     }
 

@@ -1,0 +1,1 @@
+<button id="btnB2CPL"><i class="fas fa-retweet"></i>&nbsp;<?php esc_html_e( 'B2CPL', IN_WC_CRM ); ?></button>

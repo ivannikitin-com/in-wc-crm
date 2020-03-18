@@ -24,7 +24,7 @@ class PickPoint extends Base
         if ( ! $this->isEnabled() ) 
             return;
 		
-        add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ) );
+        add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 31 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_pickpoint_send_orders', array( $this, 'sendOrders' ) );
     }
