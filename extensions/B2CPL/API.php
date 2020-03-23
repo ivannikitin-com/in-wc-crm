@@ -72,10 +72,10 @@ class API
         $parcels = array( array(
             'number'=> apply_filters( 'inwccrm_b2cpl_parcel_number', 1, $order ),
             'code'=> apply_filters( 'inwccrm_b2cpl_parcel_code', $order->get_order_number() . '/1' , $order ),
-            'weight'=> 1000,
-            'dim_x'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_x', '', $order ),
-            'dim_y'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_y', '', $order ),
-            'dim_z'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_z', '', $order ),
+            'weight'=> apply_filters( 'inwccrm_b2cpl_parcel_weight', 1000, $order ),
+            'dim_x'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_x', 0, $order ),
+            'dim_y'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_y', 0, $order ),
+            'dim_z'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_z', 0, $order ),
             'items'=> $items
         ) );  
 

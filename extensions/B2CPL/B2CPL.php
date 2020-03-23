@@ -142,7 +142,45 @@ class B2CPL extends Base
             // Передача заказов
             $result = $api->send( $orders );
 
+            // Ответ в админку
+            if ( $result->success )
+            {
+                $responseStr = __( 'Заказы приняты:', IN_WC_CRM );
 
+                // Запишем заказы в WooCommerce
+				foreach( $result->orders as $order )
+				{
+					$currentOrder = new WC_Order( $order->code );
+                    // Добавим мета-поля
+                    $currentOrder->add_order_note( 
+						__( 'B2CPL', IN_WC_CRM ) . ': ' . 
+						__( 'Отправление создано', IN_WC_CRM ) . ': ' . 
+						$order->code_b2cpl
+					);
+                    $currentOrder->add_meta_data( __( 'B2CPL код', IN_WC_CRM ),  $order->code_b2cpl );
+                    
+                    // Установим новый статус
+                    $currentStatus = $currentOrder->get_status();
+                    $newStatus = apply_filters( 'inwccrm_b2cpl_set_order_status', $currentStatus, $currentOrder );
+                    if ( $currentStatus != $newStatus )
+                    {
+                        $orderNote = apply_filters( 'inwccrm_b2cpl_set_order_status_note', 
+                            __( 'Статус заказа изменен после успешной отправки B2CPL', IN_WC_CRM ),
+                            $newStatus, $currentOrder );
+                        $currentOrder->update_status( $newStatus, $orderNote );
+                    }
+
+                    // Результат в строку результата
+                    $responseStr .= ' ' . $order->code;
+                }
+            }
+            else
+            {
+                $responseStr = $result->message;
+            }
+
+            echo $responseStr;
+            wp_die();
 
         }
         catch (Exception $e) 
