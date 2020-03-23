@@ -6,6 +6,11 @@ namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
 use \WC_Order as WC_Order;
 use \Exception as Exception;
+use IN_WC_CRM\Extensions\B2CPL\API as API;
+use \IN_WC_CRM\Extensions\B2CPL\EmptyOrderIDsException as EmptyOrderIDsException;
+use \IN_WC_CRM\Extensions\B2CPL\NoOrdersException as NoOrdersException;
+
+require 'API.php';
 
 class B2CPL extends Base
 {
@@ -20,7 +25,7 @@ class B2CPL extends Base
 		
         add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 32 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
-
+        add_action( 'wp_ajax_b2cpl_send_orders', array( $this, 'sendOrders' ) );
     }
 
     /**
@@ -106,4 +111,46 @@ class B2CPL extends Base
      * Максимальное число заказов из БД 
      */
     const ORDER_LIMIT = 250;
+
+    /**
+     * AJAX запрос на отправку данных
+     */
+    public function sendOrders()
+    {
+        try
+        {
+            // Подключение
+            $api = new API(
+                $this->getParam( 'B2CPL-api-endpoint', '' ),         // URL
+                $this->getParam( 'B2CPL-api-login', '' ),            // Login
+                $this->getParam( 'B2CPL-api-password', '' )          // Password
+            );
+
+            // ID заказов для отправки
+            $idsString = ( isset( $_POST['ids'] ) ) ? trim( sanitize_text_field( $_POST['ids'] ) ) : '';
+            if ( empty( $idsString ) ) throw new EmptyOrderIDsException( __( 'ID заказов не переданы', IN_WC_CRM ) );            
+
+            // Запрос выбранных заказов
+            $args = array(
+                'limit'     => apply_filters( 'inwccrm_b2cpl_datatable_order_limit', self::ORDER_LIMIT ),
+                'return'    => 'objects',
+                'post__in'  => explode(',', $idsString )      
+            );
+            $orders = wc_get_orders( $args );
+            if ( empty( $orders ) ) throw new NoOrdersException( __( 'Указанные заказы не найдены:', IN_WC_CRM ) . ' ' . $idsString );
+
+            // Передача заказов
+            $result = $api->send( $orders );
+
+
+
+        }
+        catch (Exception $e) 
+        {
+            // Возникли ошибки
+            esc_html_e( 'Ошибка!', IN_WC_CRM );
+            echo ' ', $e->getMessage();
+            wp_die();  
+        }
+    }    
 }
