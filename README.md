@@ -23,6 +23,9 @@ extensions\MyExt\MyExt.php
 Расширения инициализируются в правильное время, то есть конструктор расширения будет вызван во время испольнения хука ```init```.
 
 ## История версий
+### 1.5
+* Добавлено расширение TopDelivery
+
 ### 1.4
 * Добавлено расширение PDFInvoices, которое добавляет возможность печати счетов заказов через плагин [WooCommerce PDF Invoices & Packing Slips](https://ru.wordpress.org/plugins/woocommerce-pdf-invoices-packing-slips/)
 * Добавлено расширение B2CPL, которое добавляет возможность выгрузки заказов в [B2CPL](https://b2cpl.ru/)
