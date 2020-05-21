@@ -21,7 +21,7 @@ jQuery(function($){
 
         // Передаем данные на сервер
         var ajaxRequest = {
-            action: 'b2cpl_send_orders',
+            action: 'topdelivery_send_orders',
             ids: selectedIds.join(',')
         };
 		$.post(ajaxurl, ajaxRequest)

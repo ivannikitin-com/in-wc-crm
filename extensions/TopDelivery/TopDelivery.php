@@ -25,7 +25,7 @@ class TopDelivery extends Base
 		
         add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 32 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
-        add_action( 'wp_ajax_b2cpl_send_orders', array( $this, 'sendOrders' ) );
+        add_action( 'wp_ajax_topdelivery_send_orders', array( $this, 'sendOrders' ) );
     }
 
     /**
@@ -70,7 +70,6 @@ class TopDelivery extends Base
      */
     public function saveSettings()
     {
-        $this->settings['TopDelivery-api-endpoint'] = isset( $_POST['TopDelivery-api-endpoint'] ) ? trim(sanitize_text_field( $_POST['TopDelivery-api-endpoint'] ) ) : '';
         $this->settings['TopDelivery-api-login'] = isset( $_POST['TopDelivery-api-login'] ) ? trim(sanitize_text_field( $_POST['TopDelivery-api-login'] ) )  : '';
         $this->settings['TopDelivery-api-password'] = isset( $_POST['TopDelivery-api-password'] ) ? sanitize_text_field( $_POST['TopDelivery-api-password'] ) : '';
 
@@ -121,9 +120,13 @@ class TopDelivery extends Base
         {
             // Подключение
             $api = new API(
-                $this->getParam( 'TopDelivery-api-endpoint', '' ),         // URL
-                $this->getParam( 'TopDelivery-api-login', '' ),            // Login
-                $this->getParam( 'TopDelivery-api-password', '' )          // Password
+                $this->getParam( 'TopDelivery-api-login', '' ),      // Login
+                $this->getParam( 'TopDelivery-api-password', '' ),   // Password
+                $this->getParam( 'TopDelivery-inn', '' ),            // ИНН поставщика
+                $this->getParam( 'TopDelivery-jurName', '' ),        // Юридическое лицо
+                $this->getParam( 'TopDelivery-jurAddress', '' ),     // Юридический адрес
+                $this->getParam( 'TopDelivery-commercialName', '' ), // Коммерческое наименование
+                $this->getParam( 'TopDelivery-phone', '' )           // Номер телефона
             );
 
             // ID заказов для отправки
@@ -132,7 +135,7 @@ class TopDelivery extends Base
 
             // Запрос выбранных заказов
             $args = array(
-                'limit'     => apply_filters( 'inwccrm_b2cpl_datatable_order_limit', self::ORDER_LIMIT ),
+                'limit'     => apply_filters( 'inwccrm_topdelivery_datatable_order_limit', self::ORDER_LIMIT ),
                 'return'    => 'objects',
                 'post__in'  => explode(',', $idsString )      
             );
@@ -161,10 +164,10 @@ class TopDelivery extends Base
                     
                     // Установим новый статус
                     $currentStatus = $currentOrder->get_status();
-                    $newStatus = apply_filters( 'inwccrm_b2cpl_set_order_status', $currentStatus, $currentOrder );
+                    $newStatus = apply_filters( 'inwccrm_topdelivery_set_order_status', $currentStatus, $currentOrder );
                     if ( $currentStatus != $newStatus )
                     {
-                        $orderNote = apply_filters( 'inwccrm_b2cpl_set_order_status_note', 
+                        $orderNote = apply_filters( 'inwccrm_topdelivery_set_order_status_note', 
                             __( 'Статус заказа изменен после успешной отправки B2CPL', IN_WC_CRM ),
                             $newStatus, $currentOrder );
                         $currentOrder->update_status( $newStatus, $orderNote );

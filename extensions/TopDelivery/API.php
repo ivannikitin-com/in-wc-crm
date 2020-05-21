@@ -12,125 +12,172 @@ require 'Exceptions.php';
 class API
 {
     /**
-     * Лог файл
+     * WSDL
      */
-    const LOGFILE = 'B2CPL-sending.log';
+    const WSDL = 'https://is-test.topdelivery.ru/api/soap/w/2.1/?WSDL';
+
 
     /**
-     * Параметры удаленного сервера и подключения
+     * Лог файл
      */
-    private $url;
-    private $login;
-    private $password;
+    const LOGFILE = 'topdelivery-sending.log';
+
+    /**
+     * Параметры удаленного сервера, подключения и других параметров
+     */
+    private $login;             // Login
+    private $password;          // Password
+    private $inn;               // ИНН поставщика
+    private $jurName;           // Юридическое лицо
+    private $jurAddress;        // Юридический адрес
+    private $commercialName;    // Коммерческое наименование
+    private $phone;             // Номер телефона
 
     /**
      * Конструктор
-     * @param string    $url                    URL удаленного сервера
-     * @param string    $login                  Логин
-     * @param string    $password               Пароль
+     * @param string    $login            Логин
+     * @param string    $password         Пароль
+     * @param string    $inn              ИНН поставщика
+     * @param string    $jurName          Юридическое лицо
+     * @param string    $jurAddress       Юридический адрес
+     * @param string    $commercialName   Коммерческое наименование
+     * @param string    $phone            Номер телефона
      */
-    public function __construct( $url, $login, $password )
+    public function __construct( $login, $password, $inn, $jurName, $jurAddress, $commercialName, $phone )
     {
-        $this->url = $url;
         $this->login = $login;
         $this->password = $password;
-
-        // Убираем из URL финальный слеш
-        if ( substr( $this->url, -1 ) == '/' )
-            $this->url = substr( $this->url, 0, strlen( $this->url ) -1 );
+        $this->inn = $inn;
+        $this->jurName = $jurName;
+        $this->jurAddress = $jurAddress;
+        $this->commercialName = $commercialName;
+        $this->phone = $phone;
     }
 
     /**
      * Возвращает структуру заказа для отправки
+     * https://docs.topdelivery.ru/pages/soapapi/w/?v=2.1#method-addOrders
      * @param WC_Order  $order  Заказ WooCommerce
      * @return mixed
      */
     private function getOrder( $order )
     {
-        // Массив элементов заказа
+        // Элементы заказа
         $items = array();
         $summTotal = 0;
+        $weghtTotal = 0;    
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
             $itemQuantity = $orderItem->get_quantity();
             $itemPrice = $orderItem->get_total();
-            $summTotal += $itemQuantity * $itemPrice;
+            $itemTotalPrice = $itemQuantity * $itemPrice;
+            $summTotal += $itemTotalPrice;
+            $itemWeghtTotal = $itemQuantity * $product->get_weight() * 1000;
+            $weghtTotal += $itemWeghtTotal;
             $items[] = array(
-                'prodcode'=> apply_filters( 'inwccrm_b2cpl_item_prodcode', $product->get_sku(), $order, $product ),     // артикул
-                'prodname'=> apply_filters( 'inwccrm_b2cpl_item_prodname', $product->get_name(), $order, $product ),    // наименование, обязательное поле
-                'quantity'=> apply_filters( 'inwccrm_b2cpl_item_quantity', $itemQuantity, $order, $product ),  // количество, обязательное поле
-                'weight'=> apply_filters( 'inwccrm_b2cpl_item_weight', $product->get_weight() * 1000, $order, $product ),  // вес единицы товара в граммах, обязательное поле
-                'price'=> apply_filters( 'inwccrm_b2cpl_item_price', $itemPrice, $order, $product ),   // стоимость единицы товара, обязательное поле
-                'price_pay'=> apply_filters( 'inwccrm_b2cpl_item_price_pay', $itemPrice, $order, $product ), // стоимость единицы товара к оплате, обязательное поле
-                'price_assess'=> apply_filters( 'inwccrm_b2cpl_item_price_assess', $itemPrice, $order, $product ), // страховая стоимость единицы товара, необязательное поле
-                'vat'=> apply_filters( 'inwccrm_b2cpl_item_vat', 0, $order, $product ) // НДС товара, необязательное поле                
+                'itemId'        => apply_filters( 'inwccrm_topdelivery_orderitem_id', $orderItemId, $order, $orderItem ),
+                'name'          => apply_filters( 'inwccrm_topdelivery_orderitem_name', $product->get_name(), $order, $orderItem ),
+                'article'       => apply_filters( 'inwccrm_topdelivery_orderitem_article', $product->get_sku(), $order, $orderItem ),
+                'count'         => apply_filters( 'inwccrm_topdelivery_orderitem_count', $itemQuantity, $order, $orderItem ),
+                'declaredPrice' => apply_filters( 'inwccrm_topdelivery_orderitem_declaredprice', $itemTotalPrice, $order, $orderItem ),
+                'clientPrice'   => apply_filters( 'inwccrm_topdelivery_orderitem_clientprice', $itemTotalPrice, $order, $orderItem ),
+                'weight'        => apply_filters( 'inwccrm_topdelivery_orderitem_weight', $itemWeghtTotal, $order, $orderItem ),
+                'push'          => apply_filters( 'inwccrm_topdelivery_orderitem_push', 1, $order, $orderItem ),
+                'status' => array(
+                    'id'            => apply_filters( 'inwccrm_topdelivery_orderitem_status_id', NULL, $order, $orderItem ),
+                    'name'          => apply_filters( 'inwccrm_topdelivery_orderitem_status_name', NULL, $order, $orderItem ),
+                    'deliveryCount' => apply_filters( 'inwccrm_topdelivery_orderitem_status_deliveryCount', NULL, $order, $orderItem ),
+                    'vat'           => apply_filters( 'inwccrm_topdelivery_orderitem_status_vat', NULL, $order, $orderItem ),
+                    'trueMark'      => apply_filters( 'inwccrm_topdelivery_orderitem_status_deliveryCount', NULL, $order, $orderItem ),
+                )
             );
-        }
+        }        
 
-        // Массив посылок. Сейчас один заказ - одна посылка
-        $parcels = array( array(
-            'number'=> apply_filters( 'inwccrm_b2cpl_parcel_number', 1, $order ),
-            'code'=> apply_filters( 'inwccrm_b2cpl_parcel_code', $order->get_order_number() . '/1' , $order ),
-            'weight'=> apply_filters( 'inwccrm_b2cpl_parcel_weight', 1000, $order ),
-            'dim_x'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_x', 0, $order ),
-            'dim_y'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_y', 0, $order ),
-            'dim_z'=> apply_filters( 'inwccrm_b2cpl_parcel_dim_z', 0, $order ),
-            'items'=> $items
-        ) );  
-
-       return array(
-            'invoice_number'=> apply_filters( 'inwccrm_b2cpl_invoice_number', '', $order ),         // Номер накладной, необязательное поле
-            'sender'=> apply_filters( 'inwccrm_b2cpl_sender', get_option( 'blogname' ), $order ),   // Отправитель -- Название магазина
-            'code'=> apply_filters( 'inwccrm_b2cpl_code', $order->get_order_number(), $order ),     // уникальный код заказа в системе заказчика, обязательное поле
-            'code_b2cpl'=> apply_filters( 'inwccrm_b2cpl_code_b2cpl', '', $order ),     // код B2CPL (если есть)
-            'code_client'=> apply_filters( 'inwccrm_b2cpl_code_client', $order->get_billing_email(), $order),   // код клиента в системе заказчика
-            'fio'=> apply_filters( 'inwccrm_b2cpl_fio',  // ФИО, обязательное поле
-                ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
+        // Формирование и возврат заказа
+        return array(
+            'serviceType'             => apply_filters( 'inwccrm_topdelivery_servicetype', 'DELIVERY', $order ),
+            'deliveryType'            => apply_filters( 'inwccrm_topdelivery_deliverytype', 'COURIER', $order ),
+            'orderSubtype'            => apply_filters( 'inwccrm_topdelivery_ordersubtype', 'SIMPLE', $order ),
+            'deliveryCostPayAnyway'   => apply_filters( 'inwccrm_topdelivery_deliverycostpayanyway', 0, $order ),
+            'webshopNumber'           => apply_filters( 'inwccrm_topdelivery_webshopnumber', $order->get_order_number(), $order ),
+            'webshopBarcode'          => apply_filters( 'inwccrm_topdelivery_webshopbarcode', NULL, $order ),
+            'orderUrl'                => apply_filters( 'inwccrm_topdelivery_orderurl', $order->get_view_order_url(), $order ),
+            'desiredDateDelivery'      => apply_filters( 'inwccrm_topdelivery_desireddatedelivery', NULL, $order ),
+            'deliveryAddress' => array(
+                'type'    => apply_filters( 'inwccrm_topdelivery_deliveryaddress_type', 'zip', $order ),
+                'region'  => apply_filters( 'inwccrm_topdelivery_deliveryaddress_region', ( ! empty( $order->get_shipping_state() ) ) ? $order->get_shipping_state() : $order->get_billing_state(), $order ),
+                'city'    => apply_filters( 'inwccrm_topdelivery_deliveryaddress_city', ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), $order ),
+                'zipcode' => apply_filters( 'inwccrm_topdelivery_deliveryaddress_zipcode', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
+                'inCityAddress' => array(
+                    'zipcode'   => apply_filters( 'inwccrm_topdelivery_deliveryaddress_incityaddress_zipcode', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
+                    'address'   => apply_filters( 'inwccrm_topdelivery_deliveryaddress_incityaddress_address', 
+                        ( ! empty( $order->get_shipping_address_1() ) ) ? 
+                        $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
+                        $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                    'pickupAddress' => apply_filters( 'inwccrm_topdelivery_deliveryaddress_incityaddress_pickupaddress', NULL, order),
+                ),
+            ),
+            'clientInfo' => array(
+                'fio'    => apply_filters( 'inwccrm_topdelivery_clientinfo_fio', 
+                    ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
                     $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
-                    $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), 
-                $order ),
-            'date_order'=> apply_filters( 'inwccrm_b2cpl_date_order', $order->get_date_created()->__toString(), $order ), // '2016-06-03T00=>00=>00', дата заказа, необязательное поле
-            'date_supply'=> apply_filters( 'inwccrm_b2cpl_date_supply', '', $order ), // дата поставки заказа на СЦ, необязательное поле
-            'zip'=> apply_filters( 'inwccrm_b2cpl_zip',     // индекс, обязательное поле
-                ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), 
-                $order ),
-            'region'=> apply_filters( 'inwccrm_b2cpl_region',     // регион, необязательное поле
-                ( ! empty( $order->get_shipping_state() ) ) ? $order->get_shipping_state() : $order->get_billing_state(), 
-                $order ),
-            'city'=> apply_filters( 'inwccrm_b2cpl_city',         // город
-                ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), 
-                $order ),
-            'address'=> apply_filters( 'inwccrm_b2cpl_address',   // адрес
-                ( ! empty( $order->get_shipping_address_1() ) ) ? 
-                    $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
-                    $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), 
-                $order ),
-            'phone1'=> apply_filters( 'inwccrm_b2cpl_phone1', preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() ), $order ),    // телефон, обязательное поле
-            'phone2'=> apply_filters( 'inwccrm_b2cpl_phone2', '', $order ),     // дополнительный телефон, необязательное поле
-            'email'=> apply_filters( 'inwccrm_b2cpl_email', $order->get_billing_email(), $order ),  // e-mail адрес, необязательное поле
-            'price_assess'=> apply_filters( 'inwccrm_b2cpl_price_assess', $order->get_total(), $order ), // оценочная стоимость заказа
-            'price_delivery'=> apply_filters( 'inwccrm_b2cpl_price_delivery', $order->get_shipping_total(), $order ), // полная стоимость доставки
-            'price_delivery_pay'=> apply_filters( 'inwccrm_b2cpl_price_delivery_pay', $order->get_shipping_total(), $order ), // стоимость доставки к оплате
-            'delivery_type'=> apply_filters( 'inwccrm_b2cpl_delivery_type', __( 'Курьером', IN_WC_CRM ), $order ),  // тип доставки (code из функции TARIF), обязательное поле
-            'delivery_term'=> apply_filters( 'inwccrm_b2cpl_delivery_term', __( 'Можно вскрывать', IN_WC_CRM ), $order ),   // условия доставки, необязательное поле
-            'delivery_date'=> apply_filters( 'inwccrm_b2cpl_delivery_date', '', $order ),   // дата доставки, необязательное поле
-            'delivery_time'=> apply_filters( 'inwccrm_b2cpl_delivery_time', '', $order ),   // интервал доставки, необязательное поле
-            'flag_open'=> apply_filters( 'inwccrm_b2cpl_flag_open', 2, $order ),  // возможность вскрытия (по умолчанию 2)
-            'flag_fitting'=> apply_filters( 'inwccrm_b2cpl_flag_fitting', false, $order ), // возможность примерки
-            'flag_call'=> apply_filters( 'inwccrm_b2cpl_flag_call', false, $order ), // требуется подтверждение заказа
-            'flag_delivery'=> apply_filters( 'inwccrm_b2cpl_flag_delivery', true, $order ), // требуется доставка B2CPL
-            'flag_return'=> apply_filters( 'inwccrm_b2cpl_flag_return', true, $order ), // возможность возврата
-            'flag_packing'=> apply_filters( 'inwccrm_b2cpl_flag_packing', false, $order ), // требует упаковки
-            'flag_partial_reject'=> apply_filters( 'inwccrm_b2cpl_flag_partial_reject', false, $order ), // возможность частичного отказа
-            'comment'=> apply_filters( 'inwccrm_b2cpl_comment', $order->get_customer_note(), $order ),
-            'parcels'=> $parcels                      
+                    $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(),
+                    $order ),
+                'phone'   => apply_filters( 'inwccrm_topdelivery_clientinfo_phone', preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() ), $order ),
+                'email'   => apply_filters( 'inwccrm_topdelivery_clientinfo_email', $order->get_billing_email(), $order ),
+                'comment' => apply_filters( 'inwccrm_topdelivery_clientinfo_comment', $order->get_customer_note(), $order ),
+            ),
+            'paymentByCard' => 0, // Не использутеся, всегда = '0'
+            'clientCosts' => array(
+                'clientDeliveryCost' => apply_filters( 'inwccrm_topdelivery_clientcosts_clientdeliverycost', $order->get_shipping_total(), $order ),
+                'recalcDelivery'     => 0,  // Не используется, всегда 0
+                'discount'  => array(        // Не используется
+                    'type'  => 'SUM',        // Не использутеся, всегда = 'SUM' 
+                    'value' => 0            // Не использутеся, всегда = '0'
+                ),
+            ),
+            'services' => array(
+                'notOpen'   => apply_filters( 'inwccrm_topdelivery_services_notopen', 0, $order ),
+                'marking'   => apply_filters( 'inwccrm_topdelivery_services_marking', 0, $order ),
+                'smsNotify' => apply_filters( 'inwccrm_topdelivery_services_smsnotify', 1, $order ),
+                'forChoise' => apply_filters( 'inwccrm_topdelivery_services_forchoise', 1, $order ),
+                'places'    => apply_filters( 'inwccrm_topdelivery_services_places', 1, $order ),
+                'pack' => array(
+                    'need'  => apply_filters( 'inwccrm_topdelivery_services_pack_need', 0, $order ),
+                    'type'  => apply_filters( 'inwccrm_topdelivery_services_pack_type', '', $order ),
+                ),
+            ),
+            'deliveryWeight' => array(
+                'weight' => apply_filters( 'inwccrm_topdelivery_deliveryweight_weight', $weghtTotal, $order ),
+                'volume' => array(
+                    'length' => apply_filters( 'inwccrm_topdelivery_deliveryweight_volume_length', 0, $order ),
+                    'width'  => apply_filters( 'inwccrm_topdelivery_deliveryweight_volume_width', 0, $order ),
+                    'height' => apply_filters( 'inwccrm_topdelivery_deliveryweight_volume_height', 0, $order ),
+                ),
+            ),    
+            'intakeWeight' => array(
+                'weight' => apply_filters( 'inwccrm_topdelivery_intakeweight_weight', $weghtTotal, $order ),
+                'volume' => array(
+                    'length' => apply_filters( 'inwccrm_topdelivery_intakeweight_volume_length', 0, $order ),
+                    'width'  => apply_filters( 'inwccrm_topdelivery_intakeweight_volume_width', 0, $order ),
+                    'height' => apply_filters( 'inwccrm_topdelivery_intakeweight_volume_height', 0, $order ),
+                ),
+            ),
+            'items' => $items,
+            'supplierSummary' => array(
+                'INN'            => apply_filters( 'inwccrm_topdelivery_suppliersummary_inn', $this->inn, $order ),
+                'jurName'        => apply_filters( 'inwccrm_topdelivery_suppliersummary_jurname', $this->jurName, $order ),
+                'jurAddress'     => apply_filters( 'inwccrm_topdelivery_suppliersummary_juraddress', $this->jurAddress, $order ),
+                'commercialName' => apply_filters( 'inwccrm_topdelivery_suppliersummary_commercialname', $this->commercialName, $order ),
+                'phone'          => apply_filters( 'inwccrm_topdelivery_suppliersummary_phone', $this->phone, $order ),
+            ),
         );
     }
 
     /**
      * Отправляет данные на сервер
-     * @param midex $orders Массив заказов
+     * @param mixed $orders Массив заказов
      */
     public function send( $orders )
     {
