@@ -121,7 +121,9 @@ class Orders2Excel extends Base
                 $product_name = $item_data['name'];
                 $item_quantity = wc_get_order_item_meta($item_id, '_qty', true);
                 $product = wc_get_product( $item_data->get_product_id() );
-                $item_sku = $product->get_sku();
+                if ( !$product ) continue;
+				
+				$item_sku = $product->get_sku();
 
                 if ( ! array_key_exists( $item_sku, $items ) )
                 {

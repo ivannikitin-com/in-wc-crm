@@ -248,6 +248,8 @@ class API
         {
             if ( ! is_a( $item, 'WC_Order_Item_Product' ) ) continue;
             $product = wc_get_product( $item->get_product_id() );
+			if ( !$product ) continue;
+			
             $SubEnclose = array(
                 'ProductCode'   => $product->get_sku(),
                 'GoodsCode'     => '',
