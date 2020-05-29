@@ -72,6 +72,11 @@ class TopDelivery extends Base
     {
         $this->settings['TopDelivery-api-login'] = isset( $_POST['TopDelivery-api-login'] ) ? trim(sanitize_text_field( $_POST['TopDelivery-api-login'] ) )  : '';
         $this->settings['TopDelivery-api-password'] = isset( $_POST['TopDelivery-api-password'] ) ? sanitize_text_field( $_POST['TopDelivery-api-password'] ) : '';
+        $this->settings['TopDelivery-inn'] = isset( $_POST['TopDelivery-inn'] ) ? sanitize_text_field( $_POST['TopDelivery-inn'] ) : '';
+        $this->settings['TopDelivery-jurName'] = isset( $_POST['TopDelivery-jurName'] ) ? sanitize_text_field( $_POST['TopDelivery-jurName'] ) : '';
+        $this->settings['TopDelivery-jurAddress'] = isset( $_POST['TopDelivery-jurAddress'] ) ? sanitize_text_field( $_POST['TopDelivery-jurAddress'] ) : '';
+        $this->settings['TopDelivery-commercialName'] = isset( $_POST['TopDelivery-commercialName'] ) ? sanitize_text_field( $_POST['TopDelivery-commercialName'] ) : '';
+        $this->settings['TopDelivery-phone'] = isset( $_POST['TopDelivery-phone'] ) ? sanitize_text_field( $_POST['TopDelivery-phone'] ) : '';
 
         return parent::saveSettings();
     }    
@@ -190,7 +195,7 @@ class TopDelivery extends Base
         {
             // Возникли ошибки
             esc_html_e( 'Ошибка!', IN_WC_CRM );
-            echo ' ', $e->getMessage();
+            echo ' ', get_class( $e ), ': ', $e->getMessage();
             wp_die();  
         }
     }    

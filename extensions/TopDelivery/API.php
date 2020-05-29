@@ -6,6 +6,8 @@ namespace IN_WC_CRM\Extensions\TopDelivery;
 use \IN_WC_CRM\Plugin as Plugin;
 use \WC_Order_Query as WC_Order_Query;
 use \WC_Shipping as WC_Shipping;
+use \SoapClient as SoapClient;
+use \SoapFault as SoapFault;
 
 require 'Exceptions.php';
 
@@ -180,7 +182,7 @@ class API
      * @param mixed $orders Массив заказов
      */
     public function send( $orders )
-    {
+    {        
         // Проверим данные для входа
         if ( empty( $this->login ) || empty( $this->password ) )
         {
@@ -201,49 +203,45 @@ class API
 
         // Структура отправки
         $data = array(
-            'client'=> $this->login,
-            'key'=> $this->password,
-            'func'=> 'order',
-            'region'=> apply_filters( 'inwccrm_b2cpl_region', 77 ),
-            'flag_update'=> apply_filters( 'inwccrm_b2cpl_flag_update', 0 ),
-            'partner'=> apply_filters( 'inwccrm_b2cpl_partner', '' ),
-            'orders'=>$orderData
+            'auth'  => array(
+                'login'     => $this->login,
+                'password'  => $this->password
+            ), 
+            'addedOrders' => $orderData
         );
 
-        // Отправка
-        $sendData = json_encode( $data );
-        Plugin::get()->log( __( 'Данные для отправки', IN_WC_CRM ), self::LOGFILE );
-        Plugin::get()->log( $data, self::LOGFILE );
+        Plugin::get()->log( __( 'Инициализация SoapClient', IN_WC_CRM ) . ' ' . self::WSDL, self::LOGFILE );
 
-        // Формируем запрос
-        $args = array(
-            'timeout'   => 60,
-            'blocking'  => true,   
-            'headers'   => array('Content-Type' => 'application/json'),
-            'body'      => $sendData,
-        );
-
-        // Отправляем запрос
-        $response = wp_remote_post( $this->url, $args );
-
-        // проверка ошибки
-        if ( is_wp_error( $response ) ) 
+        try
         {
-            throw new SendException( __( 'Ошибка отправки данных: ', IN_WC_CRM ) . $response->get_error_message() );
+            // Создаем SOAP клиента
+            $soap = new SoapClient( self::WSDL, array(
+                'trace'         => WP_DEBUG, 
+                'exceptions'    => WP_DEBUG
+            ) );
+
+            Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
+            Plugin::get()->log( $data, self::LOGFILE );         
+
+            // Отправка данных
+            $soap->addOrders( $data );
+
+            Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
+            Plugin::get()->log( $response, self::LOGFILE );   
         }
-        
+        catch (SoapFault $e) 
+        {
+            // Возникли ошибки
+            Plugin::get()->log( __( 'Ошибки SOAP', IN_WC_CRM ) . ' ' . var_export( $e, true ), self::LOGFILE );
+            throw $e; 
+        }
+
         // Расшифровавываем ответ
-        $responseObj = json_decode( $response['body'] );
-        if ( ! $responseObj )
+        if ( ! $response )
         {        
             throw new EmptyResponseException( __( 'Пустой ответ сервера!', IN_WC_CRM ) );
         }
         
-        Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
-        Plugin::get()->log( $responseObj, self::LOGFILE ); 
-        
-        return $responseObj;
+        return $response;
     }
-
-
 }
