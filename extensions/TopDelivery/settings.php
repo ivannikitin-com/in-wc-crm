@@ -27,6 +27,16 @@ namespace IN_WC_CRM;
                 value="<?php echo $this->getParam( 'TopDelivery-api-password', '' ) ?>" ></td>
         </tr>
         <tr>
+            <th scope="row"><label for="TopDelivery-http-login"><?php esc_html_e( 'Basic Auth Логин', IN_WC_CRM) ?></label></th>
+            <td><input name="TopDelivery-http-login" type="text" id="TopDelivery-http-login"  
+                value="<?php echo $this->getParam( 'TopDelivery-http-login', '' ) ?>" ></td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="TopDelivery-http-password"><?php esc_html_e( 'Basic Auth Пароль', IN_WC_CRM) ?></label></th>
+            <td><input name="TopDelivery-http-password" type="password" id="TopDelivery-http-password"  
+                value="<?php echo $this->getParam( 'TopDelivery-http-password', '' ) ?>" ></td>
+        </tr>
+        <tr>
             <th scope="row"><label for="TopDelivery-inn"><?php esc_html_e( 'ИНН поставщика', IN_WC_CRM) ?></label></th>
             <td><input name="TopDelivery-inn" type="text" id="TopDelivery-inn"  
                 value="<?php echo $this->getParam( 'TopDelivery-inn', '' ) ?>" ></td>

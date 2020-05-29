@@ -22,13 +22,15 @@ class API
     /**
      * Лог файл
      */
-    const LOGFILE = 'topdelivery-sending.log';
+    const LOGFILE = 'topdelivery-soap.log';
 
     /**
      * Параметры удаленного сервера, подключения и других параметров
      */
-    private $login;             // Login
-    private $password;          // Password
+    private $login;             // API Login
+    private $password;          // API Password
+    private $httpLogin;         // HTTP Basic Auth Login
+    private $httpPassword;      // HTTP Basic Auth Password
     private $inn;               // ИНН поставщика
     private $jurName;           // Юридическое лицо
     private $jurAddress;        // Юридический адрес
@@ -37,18 +39,22 @@ class API
 
     /**
      * Конструктор
-     * @param string    $login            Логин
-     * @param string    $password         Пароль
+     * @param string    $login            API Логин
+     * @param string    $password         API Пароль
+     * @param string    $httpLogin        HTTP Basic Auth Логин
+     * @param string    $httpPassword     HTTP Basic Auth Пароль
      * @param string    $inn              ИНН поставщика
      * @param string    $jurName          Юридическое лицо
      * @param string    $jurAddress       Юридический адрес
      * @param string    $commercialName   Коммерческое наименование
      * @param string    $phone            Номер телефона
      */
-    public function __construct( $login, $password, $inn, $jurName, $jurAddress, $commercialName, $phone )
+    public function __construct( $login, $password, $httpLogin, $httpPassword, $inn, $jurName, $jurAddress, $commercialName, $phone )
     {
         $this->login = $login;
         $this->password = $password;
+        $this->httpLogin = $httpLogin;
+        $this->httpPassword = $httpPassword;
         $this->inn = $inn;
         $this->jurName = $jurName;
         $this->jurAddress = $jurAddress;
@@ -71,6 +77,7 @@ class API
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
+            $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'product_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
             $itemPrice = $orderItem->get_total();
             $itemTotalPrice = $itemQuantity * $itemPrice;
@@ -80,7 +87,7 @@ class API
             $items[] = array(
                 'itemId'        => apply_filters( 'inwccrm_topdelivery_orderitem_id', $orderItemId, $order, $orderItem ),
                 'name'          => apply_filters( 'inwccrm_topdelivery_orderitem_name', $product->get_name(), $order, $orderItem ),
-                'article'       => apply_filters( 'inwccrm_topdelivery_orderitem_article', $product->get_sku(), $order, $orderItem ),
+                'article'       => apply_filters( 'inwccrm_topdelivery_orderitem_article', $sku, $order, $orderItem ),
                 'count'         => apply_filters( 'inwccrm_topdelivery_orderitem_count', $itemQuantity, $order, $orderItem ),
                 'declaredPrice' => apply_filters( 'inwccrm_topdelivery_orderitem_declaredprice', $itemTotalPrice, $order, $orderItem ),
                 'clientPrice'   => apply_filters( 'inwccrm_topdelivery_orderitem_clientprice', $itemTotalPrice, $order, $orderItem ),
@@ -210,26 +217,37 @@ class API
             'addedOrders' => $orderData
         );
 
+        // Ответ сервера
+        $response = NULL;
+
         Plugin::get()->log( __( 'Инициализация SoapClient', IN_WC_CRM ) . ' ' . self::WSDL, self::LOGFILE );
 
         try
         {
             // Создаем SOAP клиента
-            $soap = new SoapClient( self::WSDL, array(
+            $soapParams = array(
                 'trace'         => WP_DEBUG, 
                 'exceptions'    => WP_DEBUG
-            ) );
+            );
+
+            if ( ! empty( $this->httpLogin ) || ! empty( $this->httpPassword ) )
+            {
+                $soapParams['login'] = $this->httpLogin;
+                $soapParams['password'] = $this->httpPassword;
+            }
+
+            $soap = new SoapClient( self::WSDL, $soapParams );
 
             Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
             Plugin::get()->log( $data, self::LOGFILE );         
 
             // Отправка данных
-            $soap->addOrders( $data );
+            $response = $soap->addOrders( $data );
 
             Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
             Plugin::get()->log( $response, self::LOGFILE );   
         }
-        catch (SoapFault $e) 
+        catch (SoapFault $e) // Ловим и логируем ошибки SOAP
         {
             // Возникли ошибки
             Plugin::get()->log( __( 'Ошибки SOAP', IN_WC_CRM ) . ' ' . var_export( $e, true ), self::LOGFILE );

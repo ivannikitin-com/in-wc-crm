@@ -72,6 +72,8 @@ class TopDelivery extends Base
     {
         $this->settings['TopDelivery-api-login'] = isset( $_POST['TopDelivery-api-login'] ) ? trim(sanitize_text_field( $_POST['TopDelivery-api-login'] ) )  : '';
         $this->settings['TopDelivery-api-password'] = isset( $_POST['TopDelivery-api-password'] ) ? sanitize_text_field( $_POST['TopDelivery-api-password'] ) : '';
+        $this->settings['TopDelivery-http-login'] = isset( $_POST['TopDelivery-http-login'] ) ? trim(sanitize_text_field( $_POST['TopDelivery-http-login'] ) )  : '';
+        $this->settings['TopDelivery-http-password'] = isset( $_POST['TopDelivery-http-password'] ) ? sanitize_text_field( $_POST['TopDelivery-http-password'] ) : '';
         $this->settings['TopDelivery-inn'] = isset( $_POST['TopDelivery-inn'] ) ? sanitize_text_field( $_POST['TopDelivery-inn'] ) : '';
         $this->settings['TopDelivery-jurName'] = isset( $_POST['TopDelivery-jurName'] ) ? sanitize_text_field( $_POST['TopDelivery-jurName'] ) : '';
         $this->settings['TopDelivery-jurAddress'] = isset( $_POST['TopDelivery-jurAddress'] ) ? sanitize_text_field( $_POST['TopDelivery-jurAddress'] ) : '';
@@ -125,8 +127,10 @@ class TopDelivery extends Base
         {
             // Подключение
             $api = new API(
-                $this->getParam( 'TopDelivery-api-login', '' ),      // Login
-                $this->getParam( 'TopDelivery-api-password', '' ),   // Password
+                $this->getParam( 'TopDelivery-api-login', '' ),      // API Login
+                $this->getParam( 'TopDelivery-api-password', '' ),   // API Password
+                $this->getParam( 'TopDelivery-http-login', '' ),     // HTTP Basic Auth Login
+                $this->getParam( 'TopDelivery-http-password', '' ),  // HTTP Basic Auth Password                
                 $this->getParam( 'TopDelivery-inn', '' ),            // ИНН поставщика
                 $this->getParam( 'TopDelivery-jurName', '' ),        // Юридическое лицо
                 $this->getParam( 'TopDelivery-jurAddress', '' ),     // Юридический адрес
@@ -150,41 +154,43 @@ class TopDelivery extends Base
             // Передача заказов
             $result = $api->send( $orders );
 
-            // Ответ в админку
-            if ( $result->success )
+            $responseStr = $result->requestResult->message . PHP_EOL;
+
+            // Ответ записываем в админку WC если он есть
+            if ( isset( $result->addOrdersResult ) )
             {
-                $responseStr = __( 'Заказы приняты:', IN_WC_CRM );
+                // Если ответ не массив, делаем его массивом
+                $resultOrders = ( is_array( $result->addOrdersResult ) ) ? $result->addOrdersResult : array( $result->addOrdersResult ); 
 
                 // Запишем заказы в WooCommerce
-				foreach( $result->orders as $order )
+				foreach( $resultOrders as $order )
 				{
-					$currentOrder = new WC_Order( $order->code );
+                    $currentOrder = new WC_Order( $order->orderIdentity->webshopNumber );
+                    $orderMessage = ( $order->status == 0 ) ?
+                        $order->message . ', ' . __( 'TopDelivery ID', IN_WC_CRM ) . ': ' . $order->orderIdentity->orderId :
+                        $order->message;
+
                     // Добавим мета-поля
-                    $currentOrder->add_order_note( 
-						__( 'TopDelivery', IN_WC_CRM ) . ': ' . 
-						__( 'Отправление создано', IN_WC_CRM ) . ': ' . 
-						$order->code_b2cpl
-					);
-                    $currentOrder->add_meta_data( __( 'TopDelivery код', IN_WC_CRM ),  $order->code_b2cpl );
-                    
-                    // Установим новый статус
-                    $currentStatus = $currentOrder->get_status();
-                    $newStatus = apply_filters( 'inwccrm_topdelivery_set_order_status', $currentStatus, $currentOrder );
-                    if ( $currentStatus != $newStatus )
+                    $currentOrder->add_order_note( $orderMessage );
+
+                    if ( $order->status == 0 )
                     {
-                        $orderNote = apply_filters( 'inwccrm_topdelivery_set_order_status_note', 
-                            __( 'Статус заказа изменен после успешной отправки B2CPL', IN_WC_CRM ),
-                            $newStatus, $currentOrder );
-                        $currentOrder->update_status( $newStatus, $orderNote );
+                        $currentOrder->add_meta_data( __( 'TopDelivery ID', IN_WC_CRM ),  $order->orderIdentity->orderId );
+                        // Установим новый статус
+                        $currentStatus = $currentOrder->get_status();
+                        $newStatus = apply_filters( 'inwccrm_topdelivery_set_order_status', $currentStatus, $currentOrder );
+                        if ( $currentStatus != $newStatus )
+                        {
+                            $orderNote = apply_filters( 'inwccrm_topdelivery_set_order_status_note', 
+                                __( 'Статус заказа изменен после успешной отправки TopDelivery', IN_WC_CRM ),
+                                $newStatus, $currentOrder );
+                            $currentOrder->update_status( $newStatus, $orderNote );
+                        }                        
                     }
 
                     // Результат в строку результата
-                    $responseStr .= ' ' . $order->code;
+                    $responseStr .= __( 'Заказ', IN_WC_CRM ) . ' ' . $order->orderIdentity->webshopNumber . ': ' . $order->message . PHP_EOL;
                 }
-            }
-            else
-            {
-                $responseStr = $result->message;
             }
 
             echo $responseStr;
