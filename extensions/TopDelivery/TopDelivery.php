@@ -79,6 +79,7 @@ class TopDelivery extends Base
         $this->settings['TopDelivery-jurAddress'] = isset( $_POST['TopDelivery-jurAddress'] ) ? sanitize_text_field( $_POST['TopDelivery-jurAddress'] ) : '';
         $this->settings['TopDelivery-commercialName'] = isset( $_POST['TopDelivery-commercialName'] ) ? sanitize_text_field( $_POST['TopDelivery-commercialName'] ) : '';
         $this->settings['TopDelivery-phone'] = isset( $_POST['TopDelivery-phone'] ) ? sanitize_text_field( $_POST['TopDelivery-phone'] ) : '';
+        $this->settings['TopDelivery-wsdl'] = isset( $_POST['TopDelivery-wsdl'] ) ? sanitize_text_field( $_POST['TopDelivery-wsdl'] ) : '';
 
         return parent::saveSettings();
     }    
@@ -135,7 +136,8 @@ class TopDelivery extends Base
                 $this->getParam( 'TopDelivery-jurName', '' ),        // Юридическое лицо
                 $this->getParam( 'TopDelivery-jurAddress', '' ),     // Юридический адрес
                 $this->getParam( 'TopDelivery-commercialName', '' ), // Коммерческое наименование
-                $this->getParam( 'TopDelivery-phone', '' )           // Номер телефона
+                $this->getParam( 'TopDelivery-phone', '' ),          // Номер телефона
+                $this->getParam( 'TopDelivery-wsdl', '' )            // WSDL
             );
 
             // ID заказов для отправки

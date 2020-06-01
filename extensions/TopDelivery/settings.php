@@ -17,6 +17,11 @@ namespace IN_WC_CRM;
             </td>
         </tr>
         <tr>
+            <th scope="row"><label for="TopDelivery-wsdl"><?php esc_html_e( 'WSDL', IN_WC_CRM) ?></label></th>
+            <td><input name="TopDelivery-wsdl" type="url" id="TopDelivery-wsdl"  
+                value="<?php echo $this->getParam( 'TopDelivery-wsdl', '' ) ?>" ></td>
+        </tr>
+        <tr>
             <th scope="row"><label for="TopDelivery-api-login"><?php esc_html_e( 'API Логин', IN_WC_CRM) ?></label></th>
             <td><input name="TopDelivery-api-login" type="text" id="TopDelivery-api-login"  
                 value="<?php echo $this->getParam( 'TopDelivery-api-login', '' ) ?>" ></td>
@@ -58,7 +63,7 @@ namespace IN_WC_CRM;
         </tr>
         <tr>
             <th scope="row"><label for="TopDelivery-phone"><?php esc_html_e( 'Номер телефона', IN_WC_CRM) ?></label></th>
-            <td><input name="TopDelivery-phone" type="text" id="TopDelivery-phone"  
+            <td><input name="TopDelivery-phone" type="phone" id="TopDelivery-phone"  
                 value="<?php echo $this->getParam( 'TopDelivery-phone', '' ) ?>" ></td>
         </tr>
     </tbody>

@@ -36,6 +36,7 @@ class API
     private $jurAddress;        // Юридический адрес
     private $commercialName;    // Коммерческое наименование
     private $phone;             // Номер телефона
+    private $wsdl;              // WSDL
 
     /**
      * Конструктор
@@ -48,8 +49,9 @@ class API
      * @param string    $jurAddress       Юридический адрес
      * @param string    $commercialName   Коммерческое наименование
      * @param string    $phone            Номер телефона
+     * @param string    $wsdl             WSDL
      */
-    public function __construct( $login, $password, $httpLogin, $httpPassword, $inn, $jurName, $jurAddress, $commercialName, $phone )
+    public function __construct( $login, $password, $httpLogin, $httpPassword, $inn, $jurName, $jurAddress, $commercialName, $phone, $wsdl )
     {
         $this->login = $login;
         $this->password = $password;
@@ -60,6 +62,7 @@ class API
         $this->jurAddress = $jurAddress;
         $this->commercialName = $commercialName;
         $this->phone = $phone;
+        $this->wsdl = $wsdl;
     }
 
     /**
@@ -191,7 +194,7 @@ class API
     public function send( $orders )
     {        
         // Проверим данные для входа
-        if ( empty( $this->login ) || empty( $this->password ) )
+        if ( empty( $this->login ) || empty( $this->password ) || empty( $this->wsdl ))
         {
             throw new NoСredentialsException( __( 'Не указаны данные для входа', IN_WC_CRM ) );
         }
@@ -220,7 +223,7 @@ class API
         // Ответ сервера
         $response = NULL;
 
-        Plugin::get()->log( __( 'Инициализация SoapClient', IN_WC_CRM ) . ' ' . self::WSDL, self::LOGFILE );
+        Plugin::get()->log( __( 'Инициализация SoapClient', IN_WC_CRM ) . ' ' . $this->wsdl, self::LOGFILE );
 
         try
         {
