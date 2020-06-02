@@ -14,12 +14,6 @@ require 'Exceptions.php';
 class API
 {
     /**
-     * WSDL
-     */
-    const WSDL = 'https://is-test.topdelivery.ru/api/soap/w/2.1/?WSDL';
-
-
-    /**
      * Лог файл
      */
     const LOGFILE = 'topdelivery-soap.log';
@@ -239,7 +233,7 @@ class API
                 $soapParams['password'] = $this->httpPassword;
             }
 
-            $soap = new SoapClient( self::WSDL, $soapParams );
+            $soap = new SoapClient( $this->wsdl, $soapParams );
 
             Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
             Plugin::get()->log( $data, self::LOGFILE );         
