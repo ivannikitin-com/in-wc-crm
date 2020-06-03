@@ -76,8 +76,8 @@ class API
             $product = $orderItem->get_product();
             $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'product_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
-            $itemPrice = $orderItem->get_total();
-            $itemTotalPrice = $itemQuantity * $itemPrice;
+            $itemTotalPrice = $orderItem->get_total();
+            $itemPrice = ($itemQuantity > 0 ) ? $itemTotalPrice / $itemQuantity : $itemTotalPrice;
             $summTotal += $itemTotalPrice;
             $itemWeghtTotal = $itemQuantity * $product->get_weight() * 1000;
             $weghtTotal += $itemWeghtTotal;
@@ -138,8 +138,8 @@ class API
             'clientCosts' => array(
                 'clientDeliveryCost' => apply_filters( 'inwccrm_topdelivery_clientcosts_clientdeliverycost', $order->get_shipping_total(), $order ),
                 'recalcDelivery'     => 0,  // Не используется, всегда 0
-                'discount'  => array(        // Не используется
-                    'type'  => 'SUM',        // Не использутеся, всегда = 'SUM' 
+                'discount'  => array(       // Не используется
+                    'type'  => 'SUM',       // Не использутеся, всегда = 'SUM' 
                     'value' => 0            // Не использутеся, всегда = '0'
                 ),
             ),
@@ -170,7 +170,7 @@ class API
                     'height' => apply_filters( 'inwccrm_topdelivery_intakeweight_volume_height', 0, $order ),
                 ),
             ),
-            'items' => $items,
+            'items' => apply_filters( 'inwccrm_topdelivery_items', $items, $order ),
             'supplierSummary' => array(
                 'INN'            => apply_filters( 'inwccrm_topdelivery_suppliersummary_inn', $this->inn, $order ),
                 'jurName'        => apply_filters( 'inwccrm_topdelivery_suppliersummary_jurname', $this->jurName, $order ),
