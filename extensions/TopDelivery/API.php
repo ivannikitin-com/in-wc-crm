@@ -86,8 +86,8 @@ class API
                 'name'          => apply_filters( 'inwccrm_topdelivery_orderitem_name', $product->get_name(), $order, $orderItem ),
                 'article'       => apply_filters( 'inwccrm_topdelivery_orderitem_article', $sku, $order, $orderItem ),
                 'count'         => apply_filters( 'inwccrm_topdelivery_orderitem_count', $itemQuantity, $order, $orderItem ),
-                'declaredPrice' => apply_filters( 'inwccrm_topdelivery_orderitem_declaredprice', $itemTotalPrice, $order, $orderItem ),
-                'clientPrice'   => apply_filters( 'inwccrm_topdelivery_orderitem_clientprice', $itemTotalPrice, $order, $orderItem ),
+                'declaredPrice' => apply_filters( 'inwccrm_topdelivery_orderitem_declaredprice', $itemPrice, $order, $orderItem ),
+                'clientPrice'   => apply_filters( 'inwccrm_topdelivery_orderitem_clientprice', $itemPrice, $order, $orderItem ),
                 'weight'        => apply_filters( 'inwccrm_topdelivery_orderitem_weight', $itemWeghtTotal, $order, $orderItem ),
                 'push'          => apply_filters( 'inwccrm_topdelivery_orderitem_push', 1, $order, $orderItem ),
                 'status' => array(
