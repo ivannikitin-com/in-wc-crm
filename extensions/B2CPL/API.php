@@ -111,7 +111,7 @@ class API
             'email'=> apply_filters( 'inwccrm_b2cpl_email', $order->get_billing_email(), $order ),  // e-mail адрес, необязательное поле
             'price_assess'=> apply_filters( 'inwccrm_b2cpl_price_assess', $order->get_total(), $order ), // оценочная стоимость заказа
             'price_delivery'=> apply_filters( 'inwccrm_b2cpl_price_delivery', $order->get_shipping_total(), $order ), // полная стоимость доставки
-            'price_delivery_pay'=> apply_filters( 'inwccrm_b2cpl_price_delivery_pay', $order->get_shipping_total(), $order ), // стоимость доставки к оплате
+            'price_delivery_pay'=> apply_filters( 'inwccrm_b2cpl_price_delivery_pay', $order->get_total(), $order ), // стоимость доставки к оплате
             'delivery_type'=> apply_filters( 'inwccrm_b2cpl_delivery_type', __( 'Курьером', IN_WC_CRM ), $order ),  // тип доставки (code из функции TARIF), обязательное поле
             'delivery_term'=> apply_filters( 'inwccrm_b2cpl_delivery_term', __( 'Можно вскрывать', IN_WC_CRM ), $order ),   // условия доставки, необязательное поле
             'delivery_date'=> apply_filters( 'inwccrm_b2cpl_delivery_date', '', $order ),   // дата доставки, необязательное поле
