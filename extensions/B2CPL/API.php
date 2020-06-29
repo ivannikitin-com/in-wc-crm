@@ -49,13 +49,13 @@ class API
     {
         // Массив элементов заказа
         $items = array();
-        $summTotal = 0;
+        //$summTotal = 0;
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
             $itemQuantity = $orderItem->get_quantity();
             $itemPrice = $orderItem->get_total();
-            $summTotal += $itemQuantity * $itemPrice;
+            //$summTotal += $itemQuantity * $itemPrice;
             $items[] = array(
                 'prodcode'=> apply_filters( 'inwccrm_b2cpl_item_prodcode', $product->get_sku(), $order, $product ),     // артикул
                 'prodname'=> apply_filters( 'inwccrm_b2cpl_item_prodname', $product->get_name(), $order, $product ),    // наименование, обязательное поле
@@ -63,7 +63,7 @@ class API
                 'weight'=> apply_filters( 'inwccrm_b2cpl_item_weight', $product->get_weight() * 1000, $order, $product ),  // вес единицы товара в граммах, обязательное поле
                 'price'=> apply_filters( 'inwccrm_b2cpl_item_price', $itemPrice, $order, $product ),   // стоимость единицы товара, обязательное поле
                 'price_pay'=> apply_filters( 'inwccrm_b2cpl_item_price_pay', $itemPrice, $order, $product ), // стоимость единицы товара к оплате, обязательное поле
-                'price_assess'=> apply_filters( 'inwccrm_b2cpl_item_price_assess', $itemPrice, $order, $product ), // страховая стоимость единицы товара, необязательное поле
+                //'price_assess'=> apply_filters( 'inwccrm_b2cpl_item_price_assess', $itemPrice, $order, $product ), // страховая стоимость единицы товара, необязательное поле
                 'vat'=> apply_filters( 'inwccrm_b2cpl_item_vat', 0, $order, $product ) // НДС товара, необязательное поле                
             );
         }
