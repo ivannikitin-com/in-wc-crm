@@ -77,7 +77,7 @@ class API
             $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'product_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
             $itemTotalPrice = $orderItem->get_total();
-            $itemPrice = ($itemQuantity > 0 ) ? $itemTotalPrice / $itemQuantity : $itemTotalPrice;
+            $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, 2 ) : $itemTotalPrice;
             $summTotal += $itemTotalPrice;
             $itemWeghtTotal = $itemQuantity * $product->get_weight() * 1000;
             $weghtTotal += $itemWeghtTotal;
