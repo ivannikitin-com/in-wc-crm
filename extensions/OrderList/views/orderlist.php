@@ -73,8 +73,14 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
 <section id="orderListDataTable">
     <style>
     #orderTable tbody tr td { text-align: center }
+    #orderListDataTable { position: relative }
+    #orderListDataTableSelectedRowsCount { position: absolute; left: 20em; top: 1.6em; display: none }
     </style>
     <small><?php esc_html_e( 'Для выделения строки просто щелкните по ней', IN_WC_CRM ); ?></small>
+    <div id="orderListDataTableSelectedRowsCount">
+        <?php esc_html_e( 'Выделено строк: ', IN_WC_CRM ); ?>
+        <span>&nbsp;</span>
+    </div>
     <table id="orderTable" class="display" style="width:100%">
         <thead>
             <?php

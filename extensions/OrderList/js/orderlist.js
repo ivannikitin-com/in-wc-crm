@@ -26,6 +26,17 @@ jQuery(function ($){
 	// ------------------- Выбор и отметка рядов таблицы -------------------
 	$('#orderTable tbody').on( 'click', 'tr', function () {
         $(this).toggleClass('selected');
+        // Выбранные ряды
+        var table = $('#orderTable').DataTable();
+        var selectedRowsCount = table.rows('.selected').data().length;
+        //console.log('Выбрано рядов', selectedRowsCount);
+        if (selectedRowsCount > 0){
+            $('#orderListDataTableSelectedRowsCount span').text(selectedRowsCount);
+            $('#orderListDataTableSelectedRowsCount').show();
+        }
+        else {
+            $('#orderListDataTableSelectedRowsCount').hide();
+        }
     });
 
     // -------------------------- Загрузка данных --------------------------
