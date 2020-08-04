@@ -1,0 +1,9 @@
+/**
+ * Метки заказов
+ */
+.in_wc_crm_order_tag {
+    padding: 4px;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    background-color: #cccccc;
+}
