@@ -5,6 +5,7 @@
  * Также метки на заказы можно добавлять и в ручном режиме
  */
 namespace IN_WC_CRM\Extensions;
+use \IN_WC_CRM\Plugin as Plugin;
 use \IN_WC_CRM\Extensions\OrderTags\OrderTag as OrderTag;
 
 require 'OrderTag.php';
@@ -32,6 +33,7 @@ class OrderTags extends Base
         $this->orderTag = new OrderTag();
 
         // Хуки
+        add_action( 'admin_enqueue_scripts', array( $this, 'loadStyles' ) );
         add_action( 'admin_menu', array( $this, 'modifyAdminMenu' ) );
         add_filter( 'inwccrm_orderlist_columns', array( $this, 'getOrderListColumns' ) );
         add_filter( 'inwccrm_orderlist_column_data', array( $this, 'getOrderListData' ), 10, 3 );
@@ -55,6 +57,16 @@ class OrderTags extends Base
     public function getDescription()
     {
         return __( 'Расширение OrderTags формирует и управляет метками заказов WooCommerce', IN_WC_CRM );
+    }
+
+    /**
+     * Стили CSS этого модуля
+     */
+    public function loadStyles()
+    {
+        if( ! is_admin() ) return;
+
+        wp_enqueue_style( IN_WC_CRM . '-orderTags', Plugin::get()->url . 'extensions/OrderTags/ordertags.css' );
     }
 
     /**
@@ -88,9 +100,10 @@ class OrderTags extends Base
      */
     public function getOrderListData( $data, $column, $order )
     {
-        if ( $column != self::ORDER_LIST_COLUMN ) return $data;
-
-        return '--';
+        if ( $column != self::ORDER_LIST_COLUMN ) 
+            return $data;
+        else
+            return $this->getTags( $order );
     }
 
     /**
@@ -112,24 +125,56 @@ class OrderTags extends Base
     function showWooCommerceOrderColumnData( $column ) {
         global $post;
 
-        if ( $column == self::ORDER_LIST_COLUMN ) {
-
-            $order    = wc_get_order( $post->ID );
-            $currency = is_callable( array( $order, 'get_currency' ) ) ? $order->get_currency() : $order->order_currency;
-            $profit   = '';
-            //$cost     = sv_helper_get_order_meta( $order, '_wc_cog_order_total_cost' );
-            $total    = (float) $order->get_total();
-
-            // don't check for empty() since cost can be '0'
-            if ( '' != $cost || false != $cost ) {
-
-                // now we can cast cost since we've ensured it was calculated for the order
-                $cost   = (float) $cost;
-                $profit = $total - $cost;
-            }
-
-            //echo wc_price( $profit, array( 'currency' => $currency ) );
+        if ( $column == self::ORDER_LIST_COLUMN ) 
+        {
+            $order = wc_get_order( $post->ID );
+            echo $this->getTags( $order );
         }
+    }
+
+    /**
+     * Форматирует метку
+     * @param WP_Term    $term     Объект метки
+     * @return string   HTML представление
+     */
+    private function formatTag( $term )
+    {
+        // CSS стиль
+        $style = '';
+
+        // Цвет метки
+        $color = get_term_meta( $term->term_id, OrderTag::META_COLOR, true );
+        if ( $color ) $style .= "color:{$color};";
+
+        // Цвет фона метки
+        $colorBg = get_term_meta( $term->term_id, OrderTag::META_COLOR_BG, true );
+        if ( $colorBg ) $style .= "background-color:{$colorBg}";
+        
+        // CSS стиль (атрибут)
+        if ( $style ) $style = " style='{$style}'";
+
+        // HTML метки
+        return "<span class='in_wc_crm_order_tag'{$style}>{$term->name}</span>";
+    }
+
+    /**
+     * Возвращает список метод для указанного заказа
+     * @param WC_Order  $order  Объект заказа
+     * @return string   HTML представление
+     */
+    private function getTags( $order )
+    {
+        // Получим все метки заказа (массив ID)
+        $terms = wp_get_post_terms( $order->get_id(), OrderTag::TAXOMOMY, array('fields' => 'all') );
+        
+        // Сформируем результат
+        $result = '';
+        foreach( $terms as $term )
+        {
+            $result .= $this->formatTag( $term ) . ' ';
+        }
+
+        return $result;
     }
 
 }

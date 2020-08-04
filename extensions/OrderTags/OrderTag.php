@@ -71,7 +71,11 @@ class OrderTag{
     }
 
 
-
+	/**
+	 * Мета-поля меток
+	 */
+	const META_COLOR = 'custom_inwccrm_wc_order_tag_color';
+	const META_COLOR_BG = 'custom_inwccrm_wc_order_tag_color_bg';
 
     /**
      * Поля для ввода мета-полей метки
@@ -100,8 +104,8 @@ class OrderTag{
 	public function edit_screen_fields( $term, $taxonomy ) {
 
 		// Retrieve an existing value from the database.
-		$custom_inwccrm_wc_order_tag_color = get_term_meta( $term->term_id, 'custom_inwccrm_wc_order_tag_color', true );
-		$custom_inwccrm_wc_order_tag_color_bg = get_term_meta( $term->term_id, 'custom_inwccrm_wc_order_tag_color_bg', true );
+		$custom_inwccrm_wc_order_tag_color = get_term_meta( $term->term_id, self::META_COLOR, true );
+		$custom_inwccrm_wc_order_tag_color_bg = get_term_meta( $term->term_id, self::META_COLOR_BG, true );
 
 		// Set default values.
 		if( empty( $custom_inwccrm_wc_order_tag_color ) ) $custom_inwccrm_wc_order_tag_color = '';
@@ -133,12 +137,12 @@ class OrderTag{
 	public function save_data( $term_id ) {
 
 		// Sanitize user input.
-		$custom_new_inwccrm_wc_order_tag_color = isset( $_POST[ 'custom_inwccrm_wc_order_tag_color' ] ) ? sanitize_text_field( $_POST[ 'custom_inwccrm_wc_order_tag_color' ] ) : '';
-		$custom_new_inwccrm_wc_order_tag_color_bg = isset( $_POST[ 'custom_inwccrm_wc_order_tag_color_bg' ] ) ? sanitize_text_field( $_POST[ 'custom_inwccrm_wc_order_tag_color_bg' ] ) : '';
+		$custom_new_inwccrm_wc_order_tag_color = isset( $_POST[ self::META_COLOR ] ) ? sanitize_text_field( $_POST[ self::META_COLOR ] ) : '';
+		$custom_new_inwccrm_wc_order_tag_color_bg = isset( $_POST[ self::META_COLOR_BG ] ) ? sanitize_text_field( $_POST[ self::META_COLOR_BG ] ) : '';
 
 		// Update the meta field in the database.
-		update_term_meta( $term_id, 'custom_inwccrm_wc_order_tag_color', $custom_new_inwccrm_wc_order_tag_color );
-		update_term_meta( $term_id, 'custom_inwccrm_wc_order_tag_color_bg', $custom_new_inwccrm_wc_order_tag_color_bg );
+		update_term_meta( $term_id, self::META_COLOR, $custom_new_inwccrm_wc_order_tag_color );
+		update_term_meta( $term_id, self::META_COLOR_BG, $custom_new_inwccrm_wc_order_tag_color_bg );
 
 	}
 
