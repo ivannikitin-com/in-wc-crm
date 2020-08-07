@@ -84,6 +84,11 @@ jQuery(function ($){
              ajaxRequest['dateTo'] = rusDateToTimeStamp(dateTo) + 86400 - 1; // Секунд в сутках минус 1
          }
 
+         // Добавим все дополнительные параметры, обозначенные классом customFilter
+         $('#orderListControls .customFilter').each(function(index,element){
+            ajaxRequest[element.id] = element.value;
+         });
+
          $.post( ajaxurl, ajaxRequest, function(response) {
             var dataSet = JSON.parse( response );
             $('#orderTable').dataTable().fnClearTable();

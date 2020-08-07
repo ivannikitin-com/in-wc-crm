@@ -39,6 +39,8 @@ class OrderTags extends Base
         add_filter( 'inwccrm_orderlist_column_data', array( $this, 'getOrderListData' ), 10, 3 );
         add_filter( 'manage_edit-shop_order_columns', array( $this, 'getWooCommerceOrderColumns' ) );
         add_action( 'manage_shop_order_posts_custom_column', array( $this, 'showWooCommerceOrderColumnData' ) );
+        add_action( 'inwccrm_orderlist_controls_after', array( $this, 'showSearchControl' ) );
+        add_filter( 'inwccrm_orderlist_custom_filter', array( $this, 'filterOrder' ), 10, 3 );
     }
 
     /**
@@ -175,6 +177,29 @@ class OrderTags extends Base
         }
 
         return $result;
+    }
+
+    /**
+     * Показывает элемент фильра для поиска по меткам
+     */
+    public function showSearchControl()
+    {
+        @include 'views/search-control.php';
+    }
+
+    /**
+     * Функция выполняет фильтрацию заказов
+     * @param mixed $value      Если true Запись уходит на выдачу
+     * @param WC_Order $order   Текущий заказ
+     * @param mixed $postData   Данные $_POST AJAX запроса 
+     */
+    public function filterOrder( $value, $order, $postData )
+    {
+        $selectedTagId = ( isset( $postData['order_tag'] ) ) ? (int) sanitize_text_field( $postData['order_tag'] )  : 0;
+        if (! $selectedTagId ) return true;
+        
+        $terms = wp_get_post_terms( $order->get_id(), OrderTag::TAXOMOMY, array('fields' => 'ids') );
+        return in_array( $selectedTagId, $terms ) ;
     }
 
 }

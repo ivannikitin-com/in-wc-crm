@@ -25,6 +25,7 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
   <style>
     #orderListControls .datePicker { width: 85px }
   </style>
+  <?php do_action( 'inwccrm_orderlist_controls_before' ) ?>
   <span>
       <label for="dateFrom"><?php esc_html_e( 'Начальная дата', IN_WC_CRM ); ?></label>
       <input id="dateFrom" type="text" class="datePicker">
@@ -57,6 +58,7 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
         <?php endforeach ?>
       </select>
   </span>
+  <?php do_action( 'inwccrm_orderlist_controls_after' ) ?>
 </section>
 <hr>
 <!-- Элементы управления действиями с заказами -->

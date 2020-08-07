@@ -247,6 +247,9 @@ class OrderList extends BaseAdminPage
             }
         } 
         
+        // Фильтр параметров запроса
+        $args = apply_filters( 'inwccrm_orderlist_query_args', $args, $_POST );
+
         // Запрос заказов
         $result = array();
         $shippingMethods = $this->getShippingMethods();
@@ -261,8 +264,12 @@ class OrderList extends BaseAdminPage
                     continue;
             }
 
+            // Произвольная фильтрация списка заказов. Если true запись попадает на вывод
+            if ( ! apply_filters( 'inwccrm_orderlist_custom_filter', true, $order, $_POST ) ) continue;
+
             $orderData = array();
-            foreach ( $orderColumns as $column => $columnTitle){
+            foreach ( $orderColumns as $column => $columnTitle )
+            {
                 $orderData[$column] = $this->getOrderColumn( $column, $order );
             }
 
