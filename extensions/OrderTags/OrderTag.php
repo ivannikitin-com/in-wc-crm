@@ -34,7 +34,7 @@ class OrderTag{
     /**
      * Регистрация таксономии
      */
-    public function registerTaxonomy() {
+    private function registerTaxonomy() {
         
         $labels = array(
             'name'                       => _x( 'Метки заказов', 'Taxonomy General Name', IN_WC_CRM ),
@@ -143,7 +143,6 @@ class OrderTag{
 		// Update the meta field in the database.
 		update_term_meta( $term_id, self::META_COLOR, $custom_new_inwccrm_wc_order_tag_color );
 		update_term_meta( $term_id, self::META_COLOR_BG, $custom_new_inwccrm_wc_order_tag_color_bg );
-
 	}
 
 

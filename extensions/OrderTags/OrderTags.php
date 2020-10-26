@@ -7,8 +7,10 @@
 namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
 use \IN_WC_CRM\Extensions\OrderTags\OrderTag as OrderTag;
+use \IN_WC_CRM\Extensions\OrderTags\RuleManager as RuleManager;
 
 require 'OrderTag.php';
+require 'RuleManager.php';
 
 /**
  * Класс собирает все классы расширения и справляет ими
@@ -19,6 +21,11 @@ class OrderTags extends Base
      * Управление таксономией меток
      */
     private $orderTag;
+
+    /**
+     * Управление правилами меток
+     */
+    private $ruleManager;    
 
     /**
      * Конструктор класса
@@ -32,6 +39,8 @@ class OrderTags extends Base
         // Метки заказа
         $this->orderTag = new OrderTag();
 
+        // Менеджер правил
+        $this->ruleManager = new RuleManager();
         // Хуки
         add_action( 'admin_enqueue_scripts', array( $this, 'loadStyles' ) );
         add_action( 'admin_menu', array( $this, 'modifyAdminMenu' ) );
@@ -77,9 +86,14 @@ class OrderTags extends Base
     public function modifyAdminMenu()
     {
         global $submenu;
+        
         // Метки заказов
         $orderTagTaxonomyEdit = admin_url( 'edit-tags.php' ).'?taxonomy=' . OrderTag::TAXOMOMY;
         $submenu[ IN_WC_CRM ][] = array( __( 'Метки заказов', IN_WC_CRM ), 'manage_woocommerce', $orderTagTaxonomyEdit );
+
+        // Правила обработки заказов
+        $orderTagRuleEdit =  admin_url( 'edit.php' ).'?post_type=' . RuleManager::CPT;
+        $submenu[ IN_WC_CRM ][] = array( __( 'Правила пометки заказов', IN_WC_CRM ), 'manage_woocommerce', $orderTagRuleEdit );
     }
 
     /**
