@@ -5,18 +5,36 @@
  */
 
 namespace IN_WC_CRM\Extensions\OrderTags;
-class RuleManager{
+use \IN_WC_CRM\Extensions\OrderTags\Condition as Condition;
+use \IN_WC_CRM\Extensions\OrderTags\OrderTag as OrderTag;
+
+require 'Condition.php';
+
+class RuleManager
+{
+    /**
+     * Условия правила
+     * @var Condition
+     */
+    private $condition;
+
     /**
      * Конструктор класса
      */
     public function __construct()
     {
-        // Регистрация таксономии
+        $this->condition = new Condition();
+
+        // Регистрация типа данных
         $this->registerCPT();
-        //$this->custom_post_type();
+       
+		if ( is_admin() ) {
+			add_action( 'load-post.php',     array( $this, 'initMetabox' ) );
+			add_action( 'load-post-new.php', array( $this, 'initMetabox' ) );
+		}        
     }
 
-    /**
+    /** ===========================================================================================================
      * Тип данных
      */
     const CPT = 'inwccrm_order_rule';
@@ -58,13 +76,11 @@ class RuleManager{
             'label'                 => __( 'Правило пометки заказов', IN_WC_CRM ),
             'description'           => __( 'Правила пометки заказов', IN_WC_CRM ),
             'labels'                => $labels,
-            'supports'              => array( 'title', 'editor', 'custom-fields' ),
+            'supports'              => array( 'title'),
             'hierarchical'          => false,
-            'public'                => true,
+            'public'                => false,
             'show_ui'               => true,
             'show_in_menu'          => false,
-            //'menu_position'         => 5,
-            //'menu_icon'             => 'dashicons-welcome-add-page',
             'show_in_admin_bar'     => false,
             'show_in_nav_menus'     => false,
             'can_export'            => true,
@@ -74,5 +90,117 @@ class RuleManager{
             'capability_type'       => 'post',
         );
         register_post_type( self::CPT, $args );
+    }
+
+    /** ===========================================================================================================
+     * Метабокс
+     */
+    public function initMetabox() 
+    {
+		add_action( 'add_meta_boxes',        array( $this, 'addMetabox' )         );
+		add_action( 'save_post',             array( $this, 'saveMetabox' ), 10, 2 );
+	}
+
+    public function addMetabox() 
+    {
+
+		add_meta_box(
+            'order_rule_box',
+			__( 'Условия правила', IN_WC_CRM ),
+			array( $this, 'orderRuleMetabox' ),
+			self::CPT,
+			'advanced',
+			'high'
+		);
+
+		add_meta_box(
+            'order_tag_box',
+			__( 'Назначение метки', IN_WC_CRM ),
+			array( $this, 'orderTagMetabox' ),
+			self::CPT,
+			'advanced',
+			'high'
+		);
+
+    }
+    
+
+    /**
+     * Ключ сохранения условий в правиле
+     */
+    const RULE_CONDITIONS = 'order_tag_conditions';
+
+    /**
+     * Ключ сохранения метки в правиле
+     */
+    const RULE_TAG = 'order_tag_term_id';
+
+
+    /**
+     * Отрисовка метабокса правил
+     */
+    public function orderRuleMetabox( $post ) 
+    {
+
+        // Сохраненные условия правила
+        foreach ( get_post_meta( $post->ID, self::RULE_CONDITIONS, false ) as $condition)
+        {
+            $this->orderRuleMetaboxCondition($condition);
+        }
+
+        // Новое правило
+        $this->orderRuleMetaboxCondition(false);
+    }
+    
+    /**
+     * Отрисовка метабокса меток
+     */
+    public function orderTagMetabox( $post ) 
+    {
+        $currentTag = get_post_meta( $post->ID, self::RULE_TAG, true );
+        $tags = get_terms(array(
+            'taxonomy'   => OrderTag::TAXOMOMY,
+            'hide_empty' => false,
+        ));
+        include('views/metabox-tag.php');
+    }
+
+    /**
+     * Отрисовка одного условия
+     * @param $condition    mixed   Данные условия
+     */
+    private function orderRuleMetaboxCondition($condition)
+    {
+        include('views/metabox-condition.php');
+    }
+
+    public function saveMetabox( $post_id, $post ) 
+    {
+        if ( isset( $_POST['params'] ) && isset( $_POST['equals'] ) && isset( $_POST['values'] ))
+        {
+            for($i=0; $i < count( $_POST['params'] ); $i++ )
+            {
+                $param = isset( $_POST['params'][$i] ) ? sanitize_text_field( $_POST['params'][$i] ) : '';
+                $equal = isset( $_POST['equals'][$i] ) ? sanitize_text_field( $_POST['equals'][$i] ) : '';
+                $value = isset( $_POST['values'][$i] ) ? sanitize_text_field( $_POST['values'][$i] ) : '';
+
+                if ($param && $equal && $value)
+                {
+                    $condition = array(
+                        'param' => $param,
+                        'equal' => $equal,
+                        'value' => $value
+                    );
+
+                    update_post_meta( $post_id, self::RULE_CONDITIONS, $condition );
+                }
+            }
+        }
+        
+        if ( isset( $_POST['order_tag'] ) )
+        {
+            $orderTagId = $_POST['order_tag'];
+            update_post_meta( $post_id, self::RULE_TAG, $orderTagId );
+        }
     }
 }
