@@ -16,18 +16,22 @@ class RuleManager
      * Условия правила
      * @var Condition
      */
-    private $condition;
+    private $conditionManager;
 
     /**
      * Конструктор класса
      */
     public function __construct()
     {
-        $this->condition = new Condition();
+        $this->conditionManager = new Condition();
 
         // Регистрация типа данных
         $this->registerCPT();
-       
+
+        // Обработка новых заказов
+        add_action( 'woocommerce_new_order', array( $this, 'process' ) );
+
+        // Метабоксы правил
 		if ( is_admin() ) {
 			add_action( 'load-post.php',     array( $this, 'initMetabox' ) );
 			add_action( 'load-post-new.php', array( $this, 'initMetabox' ) );
@@ -201,6 +205,66 @@ class RuleManager
         {
             $orderTagId = $_POST['order_tag'];
             update_post_meta( $post_id, self::RULE_TAG, $orderTagId );
+        }
+    }
+
+    /** =====================================================================================================
+     */
+    
+    /**
+     * Массив записей с ID правил
+     * Сохраняем его, чтобы при массовой обработке заказов каждый раз не выбирать правила
+     * @var mixed
+     */
+    private $allRules;
+
+     /**
+     * Обработка заказа WC
+     * @param int|WC_Order  $order  Объект заказа WC
+     */
+    public function process($order)
+    {
+        // Если заказ передан через ID, получим этот заказ
+        if ( is_int( $order ) ) $order = wc_get_order( $order );
+
+        // Если найти заказ не удалось, ничего не делаем
+        if ( ! $order ) return;
+
+        // Проверяем, заполлен ли кэш-массив правил
+        if ( empty( $this->allRules) )
+        {
+            $this->allRules = array();
+
+            // Выбираем все правила
+            $ruleIds = get_posts( array( 
+                'post_type' => self::CPT,
+                'fields'    => 'ids'
+            ) );
+            
+            // Формируем кэш-массив правил
+            foreach($ruleIds as $ruleId)
+            {
+                $this->allRules[$ruleId] = array(
+                    'conditions' => get_post_meta( $ruleId, self::RULE_CONDITIONS, false ),
+                    'tag'        => get_post_meta( $ruleId, self::RULE_TAG, true )
+                );
+            }
+        }
+
+        // Применяем все правила к заказу 
+        foreach($this->allRules as $ruleId => $rule)
+        {
+            $order->add_order_note( 'Обработка правила #' . $ruleId . ': ' . var_export($rule, true) );
+
+            // Проверяем условия текущего правила
+            if ($this->conditionManager->check( $order,  $rule['conditions'] ) )
+            {
+                $order->add_order_note( 'Правило сработало, ставим метку ' . var_export($rule['tag'], true) );
+
+                // Ставим метку на заказ
+                $tag = array( $rule['tag'] * 1 ); // https://developer.wordpress.org/reference/functions/wp_set_post_terms/
+                wp_set_post_terms( $order->get_id(), $tag, OrderTag::TAXOMOMY, true );
+            }
         }
     }
 }
