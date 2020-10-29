@@ -140,7 +140,7 @@ class Condition
             case 'order_items_count':  
                 $paramValue = count( $order->get_items() );
         }
-        return apply_filters( 'inwccrm_ordertags_check', $order, $param, $paramValue );
+        return apply_filters( 'inwccrm_ordertags_get_param', $order, $param, $paramValue );
     }
 
 
