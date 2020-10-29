@@ -80,36 +80,36 @@ class Condition
             switch ($condition['equal']){
                 case 'eq':
                     $result = ($param == $value);
-                    break;
+                break;
 
                 case '!eq':
                     $result = ($param != $value);
-                    break;
+                break;
 
                 case 'lt':
                     $result = ($param < $value);
-                    break;
+                break;
 
                 case '!lt':
                     $result = ! ($param < $value);
-                    break;
+                break;
 
                 case 'gt':
                     $result = ($param > $value);
-                    break;
+                break;
 
                 case '!gt':
                     $result = ! ($param > $value);
-                    break;
+                break;
 
                 case 're':
                     // Возвращаем false в случае НЕ СООТВЕТСТВИЯ регулярному выражению
                     $result = (bool) (preg_match('/' . $value . '/', $param ));                  
-                    break;
+                break;
 
                 case '!re':
                     $result = (bool) ! (preg_match('/' . $value . '/', $param )); 
-                    break;
+                break;
                 
                 default:
                     // Новые операции, возможно определенные фильром
@@ -136,9 +136,11 @@ class Condition
         {
             case 'order_items':  
                 $paramValue = $order->get_item_count();
+            break;
                 
             case 'order_items_count':  
                 $paramValue = count( $order->get_items() );
+            break;
         }
         return apply_filters( 'inwccrm_ordertags_get_param', $order, $param, $paramValue );
     }
