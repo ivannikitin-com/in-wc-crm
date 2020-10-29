@@ -254,13 +254,9 @@ class RuleManager
         // Применяем все правила к заказу 
         foreach($this->allRules as $ruleId => $rule)
         {
-            $order->add_order_note( 'Обработка правила #' . $ruleId . ': ' . var_export($rule, true) );
-
             // Проверяем условия текущего правила
             if ($this->conditionManager->check( $order,  $rule['conditions'] ) )
             {
-                $order->add_order_note( 'Правило сработало, ставим метку ' . var_export($rule['tag'], true) );
-
                 // Ставим метку на заказ
                 $tag = array( $rule['tag'] * 1 ); // https://developer.wordpress.org/reference/functions/wp_set_post_terms/
                 wp_set_post_terms( $order->get_id(), $tag, OrderTag::TAXOMOMY, true );
