@@ -50,7 +50,7 @@ class Condition
      */
     public function getParams()
     {
-        return $this->params;
+        return apply_filters( 'inwccrm_ordertags_params', $this->params );
     }
 
     /**
@@ -59,7 +59,7 @@ class Condition
      */
     public function getEquals()
     {
-        return $this->equals;
+        return apply_filters( 'inwccrm_ordertags_equals', $this->equals );
     }
 
     /**
@@ -76,47 +76,48 @@ class Condition
             $param =  $this->getParam( $condition['param'], $order );
             $value =  $condition['value'];
 
+            $result = false;
             switch ($condition['equal']){
                 case 'eq':
-                    // Возвращаем false в случае НЕ РАВЕНСТВА
-                    if ($param != $value) return false;
+                    $result = ($param == $value);
                     break;
 
                 case '!eq':
-                    // Возвращаем false в случае РАВЕНСТВА
-                    if ($param == $value) return false;
+                    $result = ($param != $value);
                     break;
 
                 case 'lt':
-                    // Возвращаем false в случае НЕ МЕНЬШЕ
-                    if (!($param < $value)) return false;                    
+                    $result = ($param < $value);
                     break;
 
                 case '!lt':
-                    // Возвращаем false в случае МЕНЬШЕ
-                    if ($param < $value) return false;                      
+                    $result = ! ($param < $value);
                     break;
 
                 case 'gt':
-                    // Возвращаем false в случае НЕ БОЛЬШЕ
-                    if (!($param > $value)) return false;                        
+                    $result = ($param > $value);
                     break;
 
                 case '!gt':
-                    // Возвращаем false в случае БОЛЬШЕ
-                    if ($param > $value) return false;                     
+                    $result = ! ($param > $value);
                     break;
 
                 case 're':
                     // Возвращаем false в случае НЕ СООТВЕТСТВИЯ регулярному выражению
-                    if (!(preg_match('/' . $value . '/', $param ))) return false;                  
+                    $result = (bool) (preg_match('/' . $value . '/', $param ));                  
                     break;
 
                 case '!re':
-                    // Возвращаем false в случае НЕ СООТВЕТСТВИЯ регулярному выражению
-                    if (preg_match('/' . $value . '/', $param )) return false;                     
+                    $result = (bool) ! (preg_match('/' . $value . '/', $param )); 
                     break;
+                
+                default:
+                    // Новые операции, возможно определенные фильром
+                    $result = apply_filters( 'inwccrm_ordertags_check', $order, $param, $condition, $value, false );
             }
+
+            // Если результат false, дальше проверку можно не делать (ленивое вычисление)
+            if ( ! $result ) return false;
         }
         // Все правила сработали!
         return true;
@@ -130,15 +131,16 @@ class Condition
      */
     private function getParam($param, $order)
     {
+        $paramValue = '';
         switch($param)
         {
             case 'order_items':  
-                return $order->get_item_count();
+                $paramValue = $order->get_item_count();
                 
             case 'order_items_count':  
-                return count( $order->get_items() );
+                $paramValue = count( $order->get_items() );
         }
-        return false;
+        return apply_filters( 'inwccrm_ordertags_check', $order, $param, $paramValue );
     }
 
 
