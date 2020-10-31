@@ -145,15 +145,18 @@ class RuleManager
      */
     public function orderRuleMetabox( $post ) 
     {
-
         // Сохраненные условия правила
-        foreach ( get_post_meta( $post->ID, self::RULE_CONDITIONS, false ) as $condition)
+        $conditions = get_post_meta( $post->ID, self::RULE_CONDITIONS, true );
+        $ruleN = 0;
+        foreach ( $conditions as $condition)
         {
-            $this->orderRuleMetaboxCondition($condition);
+            $ruleN++;
+            $this->orderRuleMetaboxCondition($condition, $ruleN);
         }
 
         // Новое правило
-        $this->orderRuleMetaboxCondition(false);
+        $ruleN++;
+        $this->orderRuleMetaboxCondition(false, $ruleN);
     }
     
     /**
@@ -171,39 +174,44 @@ class RuleManager
 
     /**
      * Отрисовка одного условия
-     * @param $condition    mixed   Данные условия
+     * @param $condition    mixed  Данные условия
+     * @param $ruleN        int    Номер правила
      */
-    private function orderRuleMetaboxCondition($condition)
+    private function orderRuleMetaboxCondition( $condition, $ruleN )
     {
         include('views/metabox-condition.php');
     }
 
     public function saveMetabox( $post_id, $post ) 
     {
-        if ( isset( $_POST['params'] ) && isset( $_POST['equals'] ) && isset( $_POST['values'] ))
-        {
-            for($i=0; $i < count( $_POST['params'] ); $i++ )
-            {
-                $param = isset( $_POST['params'][$i] ) ? sanitize_text_field( $_POST['params'][$i] ) : '';
-                $equal = isset( $_POST['equals'][$i] ) ? sanitize_text_field( $_POST['equals'][$i] ) : '';
-                $value = isset( $_POST['values'][$i] ) ? sanitize_text_field( $_POST['values'][$i] ) : '';
+        $conditions = array();
 
+        // Проходим по массиву $ POST и ищем param_
+        foreach ($_POST as $key => $value) 
+        {
+            if ( strpos( $key, 'order_rule_condition_' ) === 0)
+            {
+                // Считываем данные для этого условия
+                $param = isset( $_POST['param_' . $value] ) ? sanitize_text_field( $_POST['param_' . $value] ) : '';
+                $equal = isset( $_POST['equal_' . $value] ) ? sanitize_text_field( $_POST['equal_' . $value] ) : '';
+                $value = isset( $_POST['value_' . $value] ) ? sanitize_text_field( $_POST['value_' . $value] ) : '';
+                
                 if ($param && $equal && $value)
                 {
-                    $condition = array(
+                    $conditions[] = array(
                         'param' => $param,
                         'equal' => $equal,
                         'value' => $value
                     );
-
-                    update_post_meta( $post_id, self::RULE_CONDITIONS, $condition );
-                }
+                }           
             }
         }
+
+        update_post_meta( $post_id, self::RULE_CONDITIONS, $conditions );
         
         if ( isset( $_POST['order_tag'] ) )
         {
-            $orderTagId = $_POST['order_tag'];
+            $orderTagId = $_POST['order_tag'] * 1;
             update_post_meta( $post_id, self::RULE_TAG, $orderTagId );
         }
     }
@@ -245,7 +253,7 @@ class RuleManager
             foreach($ruleIds as $ruleId)
             {
                 $this->allRules[$ruleId] = array(
-                    'conditions' => get_post_meta( $ruleId, self::RULE_CONDITIONS, false ),
+                    'conditions' => get_post_meta( $ruleId, self::RULE_CONDITIONS, true ),
                     'tag'        => get_post_meta( $ruleId, self::RULE_TAG, true )
                 );
             }
