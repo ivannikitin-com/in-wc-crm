@@ -6,8 +6,7 @@ namespace IN_WC_CRM\Extensions\Boxberry;
 use \IN_WC_CRM\Plugin as Plugin;
 use \WC_Order_Query as WC_Order_Query;
 use \WC_Shipping as WC_Shipping;
-use \SoapClient as SoapClient;
-use \SoapFault as SoapFault;
+
 
 require 'Exceptions.php';
 
@@ -16,56 +15,38 @@ class API
     /**
      * Лог файл
      */
-    const LOGFILE = 'Boxberry-soap.log';
+    const LOGFILE = 'boxberry-rest.log';
+
+
+    /**
+     * Точка отправки запроса
+     */
+    const URL = 'https://api.boxberry.ru/json.php';
+    
 
     /**
      * Параметры удаленного сервера, подключения и других параметров
      */
-    private $login;             // API Login
-    private $password;          // API Password
-    private $httpLogin;         // HTTP Basic Auth Login
-    private $httpPassword;      // HTTP Basic Auth Password
-    private $inn;               // ИНН поставщика
-    private $jurName;           // Юридическое лицо
-    private $jurAddress;        // Юридический адрес
-    private $commercialName;    // Коммерческое наименование
-    private $phone;             // Номер телефона
-    private $wsdl;              // WSDL
+    private $token;             // API Токен
+
 
     /**
      * Конструктор
-     * @param string    $login            API Логин
-     * @param string    $password         API Пароль
-     * @param string    $httpLogin        HTTP Basic Auth Логин
-     * @param string    $httpPassword     HTTP Basic Auth Пароль
-     * @param string    $inn              ИНН поставщика
-     * @param string    $jurName          Юридическое лицо
-     * @param string    $jurAddress       Юридический адрес
-     * @param string    $commercialName   Коммерческое наименование
-     * @param string    $phone            Номер телефона
-     * @param string    $wsdl             WSDL
+     * @param string    $token            API Токен
+
      */
-    public function __construct( $login, $password, $httpLogin, $httpPassword, $inn, $jurName, $jurAddress, $commercialName, $phone, $wsdl )
+    public function __construct( $token )
     {
-        $this->login = $login;
-        $this->password = $password;
-        $this->httpLogin = $httpLogin;
-        $this->httpPassword = $httpPassword;
-        $this->inn = $inn;
-        $this->jurName = $jurName;
-        $this->jurAddress = $jurAddress;
-        $this->commercialName = $commercialName;
-        $this->phone = $phone;
-        $this->wsdl = $wsdl;
+        $this->token = $token;
     }
 
     /**
      * Возвращает структуру заказа для отправки
-     * https://docs.Boxberry.ru/pages/soapapi/w/?v=2.1#method-addOrders
+     * https://documenter.getpostman.com/view/7354859/SzezaWVs?version=latest#190f1627-c943-4b26-a3ac-58db8e7355e0
      * @param WC_Order  $order  Заказ WooCommerce
      * @return mixed
      */
-    private function getOrder( $order )
+    private function getOrderData( $order )
     {
         // Элементы заказа
         $items = array();
@@ -74,112 +55,92 @@ class API
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
-            $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'product_' .  $product->get_id();
+            $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
             $itemTotalPrice = $orderItem->get_total();
             $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, 2 ) : $itemTotalPrice;
             $summTotal += $itemTotalPrice;
-            $itemWeghtTotal = $itemQuantity * $product->get_weight() * 1000;
+            $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
             $weghtTotal += $itemWeghtTotal;
             $items[] = array(
-                'itemId'        => apply_filters( 'inwccrm_Boxberry_orderitem_id', $orderItemId, $order, $orderItem ),
-                'name'          => apply_filters( 'inwccrm_Boxberry_orderitem_name', $product->get_name(), $order, $orderItem ),
-                'article'       => apply_filters( 'inwccrm_Boxberry_orderitem_article', $sku, $order, $orderItem ),
-                'count'         => apply_filters( 'inwccrm_Boxberry_orderitem_count', $itemQuantity, $order, $orderItem ),
-                'declaredPrice' => apply_filters( 'inwccrm_Boxberry_orderitem_declaredprice', $itemPrice, $order, $orderItem ),
-                'clientPrice'   => apply_filters( 'inwccrm_Boxberry_orderitem_clientprice', $itemPrice, $order, $orderItem ),
-                'weight'        => apply_filters( 'inwccrm_Boxberry_orderitem_weight', $itemWeghtTotal, $order, $orderItem ),
-                'push'          => apply_filters( 'inwccrm_Boxberry_orderitem_push', 1, $order, $orderItem ),
-                'status' => array(
-                    'id'            => apply_filters( 'inwccrm_Boxberry_orderitem_status_id', NULL, $order, $orderItem ),
-                    'name'          => apply_filters( 'inwccrm_Boxberry_orderitem_status_name', NULL, $order, $orderItem ),
-                    'deliveryCount' => apply_filters( 'inwccrm_Boxberry_orderitem_status_deliveryCount', NULL, $order, $orderItem ),
-                    'vat'           => apply_filters( 'inwccrm_Boxberry_orderitem_status_vat', NULL, $order, $orderItem ),
-                    'trueMark'      => apply_filters( 'inwccrm_Boxberry_orderitem_status_deliveryCount', NULL, $order, $orderItem ),
-                )
+                'id'        => apply_filters( 'inwccrm_boxberry_orderitem_id', $sku, $order, $orderItem ),
+                'name'      => apply_filters( 'inwccrm_boxberry_orderitem_name', $product->get_name(), $order, $orderItem ),
+                'UnitName'  => apply_filters( 'inwccrm_boxberry_orderitem_unitname', 'шт', $orderItemId, $order, $orderItem ),
+                'nds'       => apply_filters( 'inwccrm_boxberry_orderitem_nds', 0, $orderItemId, $order, $orderItem ),
+                'price'     => apply_filters( 'inwccrm_boxberry_orderitem_price', $itemPrice, $order, $orderItem ),
+                'quantity'  => apply_filters( 'inwccrm_boxberry_orderitem_count', $itemQuantity, $order, $orderItem )
             );
         }        
 
         // Формирование и возврат заказа
         return array(
-            'serviceType'             => apply_filters( 'inwccrm_Boxberry_servicetype', 'DELIVERY', $order ),
-            'deliveryType'            => apply_filters( 'inwccrm_Boxberry_deliverytype', 'COURIER', $order ),
-            'orderSubtype'            => apply_filters( 'inwccrm_Boxberry_ordersubtype', 'SIMPLE', $order ),
-            'deliveryCostPayAnyway'   => apply_filters( 'inwccrm_Boxberry_deliverycostpayanyway', 0, $order ),
-            'webshopNumber'           => apply_filters( 'inwccrm_Boxberry_webshopnumber', $order->get_order_number(), $order ),
-            'webshopBarcode'          => apply_filters( 'inwccrm_Boxberry_webshopbarcode', NULL, $order ),
-            'orderUrl'                => apply_filters( 'inwccrm_Boxberry_orderurl', $order->get_view_order_url(), $order ),
-            'desiredDateDelivery'      => apply_filters( 'inwccrm_Boxberry_desireddatedelivery', NULL, $order ),
-            'deliveryAddress' => array(
-                'type'    => apply_filters( 'inwccrm_Boxberry_deliveryaddress_type', 'zip', $order ),
-                'region'  => apply_filters( 'inwccrm_Boxberry_deliveryaddress_region', ( ! empty( $order->get_shipping_state() ) ) ? $order->get_shipping_state() : $order->get_billing_state(), $order ),
-                'city'    => apply_filters( 'inwccrm_Boxberry_deliveryaddress_city', ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), $order ),
-                'zipcode' => apply_filters( 'inwccrm_Boxberry_deliveryaddress_zipcode', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
-                'inCityAddress' => array(
-                    'zipcode'   => apply_filters( 'inwccrm_Boxberry_deliveryaddress_incityaddress_zipcode', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
-                    'address'   => apply_filters( 'inwccrm_Boxberry_deliveryaddress_incityaddress_address', 
-                        ( ! empty( $order->get_shipping_address_1() ) ) ? 
-                        $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
-                        $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
-                    'pickupAddress' => apply_filters( 'inwccrm_Boxberry_deliveryaddress_incityaddress_pickupaddress', NULL, order),
-                ),
+            'updateByTrack' => apply_filters( 'inwccrm_boxberry_updatebytrack', '', $order ),
+            'order_id'      => apply_filters( 'inwccrm_boxberry_order_id', $order->get_order_number(), $order ),
+            'PalletNumber'  => apply_filters( 'inwccrm_boxberry_palletnumber', '', $order ),
+            'barcode'       => apply_filters( 'inwccrm_boxberry_barcode', '', $order ),
+            'price'         => apply_filters( 'inwccrm_boxberry_price', $order->get_total(), $order ),
+            'payment_sum'   => apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ),
+            'delivery_sum'  => apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order ),
+            'issue'         => apply_filters( 'inwccrm_boxberry_issue', '', $order ),
+            'vid'           => apply_filters( 'inwccrm_boxberry_vid', 1, $order ),
+
+            'kurdost'  => array(
+                'index'     => apply_filters( 'inwccrm_boxberry_kurdost_index', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
+                'citi'      => apply_filters( 'inwccrm_boxberry_kurdost_citi', ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), $order ),
+                'addressp'  => apply_filters( 'inwccrm_boxberry_kurdost_addressp', 
+                    ( ! empty( $order->get_shipping_address_1() ) ) ? 
+                    $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
+                    $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                'timesfrom1' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom1', '', $order ),
+                'timesto1'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto1', '', $order ),
+                'timesfrom2' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom2', '', $order ),
+                'timesto2'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto2', '', $order ),
+                'timep'      => apply_filters( 'inwccrm_boxberry_kurdost_timep', '', $order ),
+                'comentk'    => apply_filters( 'inwccrm_boxberry_kurdost_comentk', '', $order ),
             ),
-            'clientInfo' => array(
-                'fio'    => apply_filters( 'inwccrm_Boxberry_clientinfo_fio', 
+
+            'shop'  => array(
+                'name'   => apply_filters( 'inwccrm_boxberry_shop_name',  get_option( 'blogname' ), $order ),
+                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', '', $order ),
+            ),
+            
+            'customer' => array(
+                'fio'    => apply_filters( 'inwccrm_boxberry_customer_fio', 
                     ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
                     $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
                     $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(),
                     $order ),
-                'phone'   => apply_filters( 'inwccrm_Boxberry_clientinfo_phone', preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() ), $order ),
-                'email'   => apply_filters( 'inwccrm_Boxberry_clientinfo_email', $order->get_billing_email(), $order ),
-                'comment' => apply_filters( 'inwccrm_Boxberry_clientinfo_comment', $order->get_customer_note(), $order ),
+                'phone'   => apply_filters( 'inwccrm_boxberry_customer_phone', preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() ), $order ),
+                'phone2'  => apply_filters( 'inwccrm_boxberry_customer_phone2', '', $order ),
+                'email'   => apply_filters( 'inwccrm_boxberry_customer_email', $order->get_billing_email(), $order ),
+                'name'    => apply_filters( 'inwccrm_boxberry_customer_name', $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), $order ),
+                'address' => apply_filters( 'inwccrm_boxberry_customer_address', $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                'inn'     => apply_filters( 'inwccrm_boxberry_customer_inn', '', $order ),
+                'kpp'     => apply_filters( 'inwccrm_boxberry_customer_kpp', '', $order ),
+                'r_s'     => apply_filters( 'inwccrm_boxberry_customer_r_s', '', $order ),
+                'bank'    => apply_filters( 'inwccrm_boxberry_customer_bank', '', $order ),
+                'kor_s'   => apply_filters( 'inwccrm_boxberry_customer_kor_s', '', $order ),
+                'bik'     => apply_filters( 'inwccrm_boxberry_customer_bik', '', $order ),              
             ),
-            'paymentByCard' => 0, // Не использутеся, всегда = '0'
-            'clientCosts' => array(
-                'clientDeliveryCost' => apply_filters( 'inwccrm_Boxberry_clientcosts_clientdeliverycost', $order->get_shipping_total(), $order ),
-                'recalcDelivery'     => 0,  // Не используется, всегда 0
-                'discount'  => array(       // Не используется
-                    'type'  => 'SUM',       // Не использутеся, всегда = 'SUM' 
-                    'value' => 0            // Не использутеся, всегда = '0'
-                ),
-            ),
-            'services' => array(
-                'notOpen'   => apply_filters( 'inwccrm_Boxberry_services_notopen', 0, $order ),
-                'marking'   => apply_filters( 'inwccrm_Boxberry_services_marking', 0, $order ),
-                'smsNotify' => apply_filters( 'inwccrm_Boxberry_services_smsnotify', 1, $order ),
-                'forChoise' => apply_filters( 'inwccrm_Boxberry_services_forchoise', 1, $order ),
-                'places'    => apply_filters( 'inwccrm_Boxberry_services_places', 1, $order ),
-                'pack' => array(
-                    'need'  => apply_filters( 'inwccrm_Boxberry_services_pack_need', 0, $order ),
-                    'type'  => apply_filters( 'inwccrm_Boxberry_services_pack_type', '', $order ),
-                ),
-            ),
-            'deliveryWeight' => array(
-                'weight' => apply_filters( 'inwccrm_Boxberry_deliveryweight_weight', $weghtTotal, $order ),
-                'volume' => array(
-                    'length' => apply_filters( 'inwccrm_Boxberry_deliveryweight_volume_length', 0, $order ),
-                    'width'  => apply_filters( 'inwccrm_Boxberry_deliveryweight_volume_width', 0, $order ),
-                    'height' => apply_filters( 'inwccrm_Boxberry_deliveryweight_volume_height', 0, $order ),
-                ),
-            ),    
-            'intakeWeight' => array(
-                'weight' => apply_filters( 'inwccrm_Boxberry_intakeweight_weight', $weghtTotal, $order ),
-                'volume' => array(
-                    'length' => apply_filters( 'inwccrm_Boxberry_intakeweight_volume_length', 0, $order ),
-                    'width'  => apply_filters( 'inwccrm_Boxberry_intakeweight_volume_width', 0, $order ),
-                    'height' => apply_filters( 'inwccrm_Boxberry_intakeweight_volume_height', 0, $order ),
-                ),
-            ),
-            'items' => apply_filters( 'inwccrm_Boxberry_items', $items, $order ),
-            'supplierSummary' => array(
-                'INN'            => apply_filters( 'inwccrm_Boxberry_suppliersummary_inn', $this->inn, $order ),
-                'jurName'        => apply_filters( 'inwccrm_Boxberry_suppliersummary_jurname', $this->jurName, $order ),
-                'jurAddress'     => apply_filters( 'inwccrm_Boxberry_suppliersummary_juraddress', $this->jurAddress, $order ),
-                'commercialName' => apply_filters( 'inwccrm_Boxberry_suppliersummary_commercialname', $this->commercialName, $order ),
-                'phone'          => apply_filters( 'inwccrm_Boxberry_suppliersummary_phone', $this->phone, $order ),
+
+            'items' => $items,
+            'notice' => apply_filters( 'inwccrm_boxberry_notice', $order->get_customer_note(), $order ),
+
+            'weights' => array(
+                'weight'   => apply_filters( 'inwccrm_boxberry_weights_weight', $weghtTotal, $order ),
+                'x'        => apply_filters( 'inwccrm_boxberry_weights_x', 1, $order ),
+                'y'        => apply_filters( 'inwccrm_boxberry_weights_y', 1, $order ),
+                'z'        => apply_filters( 'inwccrm_boxberry_weights_z', 1, $order ),
+                'barcode'  => apply_filters( 'inwccrm_boxberry_weights_barcode', '', $order ),
+                'weight2'  => apply_filters( 'inwccrm_boxberry_weights_weight2', 0, $order ),
+                'barcode2' => apply_filters( 'inwccrm_boxberry_weights_barcode2', '', $order ),
+                'x2'       => apply_filters( 'inwccrm_boxberry_weights_x2', 1, $order ),
+                'y2'       => apply_filters( 'inwccrm_boxberry_weights_y2', 1, $order ),
+                'z2'       => apply_filters( 'inwccrm_boxberry_weights_z2', 1, $order ),
             ),
         );
     }
+
 
     /**
      * Отправляет данные на сервер
@@ -187,10 +148,12 @@ class API
      */
     public function send( $orders )
     {        
+        Plugin::get()->log( __( 'BoxBerry log: send orders', IN_WC_CRM ) . ': ' . self::URL, self::LOGFILE );
+
         // Проверим данные для входа
-        if ( empty( $this->login ) || empty( $this->password ) || empty( $this->wsdl ))
+        if ( empty( $this->token ) )
         {
-            throw new NoСredentialsException( __( 'Не указаны данные для входа', IN_WC_CRM ) );
+            throw new NoСredentialsException( __( 'Не указан API токен', IN_WC_CRM ) );
         }
 
         // Соберем массив заказов
@@ -199,64 +162,40 @@ class API
             throw new NoOrdersException( __( 'Не переданы заказы для отправки', IN_WC_CRM ) );
         }
             
+
+        $responses = array();
+
         $orderData = array();
         foreach ( $orders as $order )
         {
-            $orderData[] = $this->getOrder( $order );
-        } 
-
-        // Структура отправки
-        $data = array(
-            'auth'  => array(
-                'login'     => $this->login,
-                'password'  => $this->password
-            ), 
-            'addedOrders' => $orderData
-        );
-
-        // Ответ сервера
-        $response = NULL;
-
-        Plugin::get()->log( __( 'Инициализация SoapClient', IN_WC_CRM ) . ' ' . $this->wsdl, self::LOGFILE );
-
-        try
-        {
-            // Создаем SOAP клиента
-            $soapParams = array(
-                'trace'         => WP_DEBUG, 
-                'exceptions'    => WP_DEBUG
-            );
-
-            if ( ! empty( $this->httpLogin ) || ! empty( $this->httpPassword ) )
+            try
             {
-                $soapParams['login'] = $this->httpLogin;
-                $soapParams['password'] = $this->httpPassword;
+                // Данные заказа для передачи
+                $data = $this->getOrderData( $order );
+                Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
+                Plugin::get()->log( $data, self::LOGFILE ); 
+
+                // Передача заказа
+                $args = array(
+                    'body' => array( 
+                        'token' => $this->token, 
+                        'method' => 'ParselCreate',
+                        'sdata' => json_encode($data)
+                    )
+                );
+                $response = wp_remote_post( self::URL, $args );
+
+                Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
+                Plugin::get()->log( $response, self::LOGFILE );                   
+            } 
+            catch (Exception $e) // Ловим и логируем ошибки
+            {
+                // Возникли ошибки
+                Plugin::get()->log( __( 'Ошибки', IN_WC_CRM ) . ' ' . var_export( $e, true ), self::LOGFILE );
+                throw $e; 
             }
-
-            $soap = new SoapClient( $this->wsdl, $soapParams );
-
-            Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
-            Plugin::get()->log( $data, self::LOGFILE );         
-
-            // Отправка данных
-            $response = $soap->addOrders( $data );
-
-            Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
-            Plugin::get()->log( $response, self::LOGFILE );   
-        }
-        catch (SoapFault $e) // Ловим и логируем ошибки SOAP
-        {
-            // Возникли ошибки
-            Plugin::get()->log( __( 'Ошибки SOAP', IN_WC_CRM ) . ' ' . var_export( $e, true ), self::LOGFILE );
-            throw $e; 
-        }
-
-        // Расшифровавываем ответ
-        if ( ! $response )
-        {        
-            throw new EmptyResponseException( __( 'Пустой ответ сервера!', IN_WC_CRM ) );
-        }
-        
-        return $response;
+            $responses[$order->get_ID()] = $response;
+        }      
+        return $responses;
     }
 }

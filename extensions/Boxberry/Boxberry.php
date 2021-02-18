@@ -25,7 +25,7 @@ class Boxberry extends Base
 		
         add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 32 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
-        add_action( 'wp_ajax_Boxberry_send_orders', array( $this, 'sendOrders' ) );
+        add_action( 'wp_ajax_boxberry_send_orders', array( $this, 'sendOrders' ) );   
     }
 
     /**
@@ -70,9 +70,7 @@ class Boxberry extends Base
      */
     public function saveSettings()
     {
-        $this->settings['Boxberry-api-endpoint'] = isset( $_POST['Boxberry-api-endpoint'] ) ? trim(sanitize_text_field( $_POST['Boxberry-api-endpoint'] ) ) : '';
-        $this->settings['Boxberry-api-login'] = isset( $_POST['Boxberry-api-login'] ) ? trim(sanitize_text_field( $_POST['Boxberry-api-login'] ) )  : '';
-        $this->settings['Boxberry-api-password'] = isset( $_POST['Boxberry-api-password'] ) ? sanitize_text_field( $_POST['Boxberry-api-password'] ) : '';
+        $this->settings['Boxberry-api-token'] = isset( $_POST['Boxberry-api-token'] ) ? sanitize_text_field( $_POST['Boxberry-api-token'] ) : '';
 
         return parent::saveSettings();
     }    
@@ -121,9 +119,7 @@ class Boxberry extends Base
         {
             // Подключение
             $api = new API(
-                $this->getParam( 'Boxberry-api-endpoint', '' ),         // URL
-                $this->getParam( 'Boxberry-api-login', '' ),            // Login
-                $this->getParam( 'Boxberry-api-password', '' )          // Password
+                $this->getParam( 'Boxberry-api-token', '' ),         // token
             );
 
             // ID заказов для отправки
@@ -140,43 +136,56 @@ class Boxberry extends Base
             if ( empty( $orders ) ) throw new NoOrdersException( __( 'Указанные заказы не найдены:', IN_WC_CRM ) . ' ' . $idsString );
 
             // Передача заказов
-            $result = $api->send( $orders );
+            $results = $api->send( $orders );
 
-            // Ответ в админку
-            if ( $result->success )
+            $responseStr = '';
+
+            foreach ( $results as $order_id => $result )
             {
-                $responseStr = __( 'Заказы приняты:', IN_WC_CRM );
-
-                // Запишем заказы в WooCommerce
-				foreach( $result->orders as $order )
-				{
-					$currentOrder = new WC_Order( $order->code );
-                    // Добавим мета-поля
-                    $currentOrder->add_order_note( 
-						__( 'Boxberry', IN_WC_CRM ) . ': ' . 
-						__( 'Отправление создано', IN_WC_CRM ) . ': ' . 
-						$order->code_Boxberry
-					);
-                    $currentOrder->add_meta_data( __( 'Boxberry код', IN_WC_CRM ),  $order->code_Boxberry );
-                    
-                    // Установим новый статус
-                    $currentStatus = $currentOrder->get_status();
-                    $newStatus = apply_filters( 'inwccrm_Boxberry_set_order_status', $currentStatus, $currentOrder );
-                    if ( $currentStatus != $newStatus )
-                    {
-                        $orderNote = apply_filters( 'inwccrm_Boxberry_set_order_status_note', 
-                            __( 'Статус заказа изменен после успешной отправки Boxberry', IN_WC_CRM ),
-                            $newStatus, $currentOrder );
-                        $currentOrder->update_status( $newStatus, $orderNote );
-                    }
-
-                    // Результат в строку результата
-                    $responseStr .= ' ' . $order->code;
+                if ( isset( $result['body'] ) )
+                {
+                    $resultObj = json_decode( $result['body'] );
                 }
-            }
-            else
-            {
-                $responseStr = $result->message;
+                else 
+                {
+                    $responseStr .= __( 'Непредвиденный ответ Boxberry на заказ', IN_WC_CRM ) . ' ' . $order_id . PHP_EOL . 
+                    var_export($result, true) . PHP_EOL;
+                    continue;
+                }
+
+                // Сообщение
+                $resultMessage = ( isset( $resultObj->err ) ) ? 
+                    __( 'Заказ', IN_WC_CRM ) . ' #' . $order_id . ': ' .  $resultObj->err : '';
+
+                // Результат в строку результата
+                $responseStr .= ' ' . $resultMessage . PHP_EOL . PHP_EOL;                   
+
+                $currentOrder = new WC_Order( $order_id );
+                $currentOrder->add_order_note( 
+                    __( 'Boxberry', IN_WC_CRM ) . ': ' . 
+                    __( 'Статус ответа', IN_WC_CRM ) . ': ' . 
+                    $resultMessage
+                );
+
+                // Ошибки на BoxBerry
+                if ( isset( $resultObj->err ) )
+                {
+                    continue;
+                }
+
+
+                // Установим новый статус
+                $currentStatus = $currentOrder->get_status();
+                $newStatus = apply_filters( 'inwccrm_Boxberry_set_order_status', $currentStatus, $currentOrder );
+                if ( $currentStatus != $newStatus )
+                {
+                    $orderNote = apply_filters( 'inwccrm_Boxberry_set_order_status_note', 
+                        __( 'Статус заказа изменен после успешной отправки Boxberry', IN_WC_CRM ),
+                        $newStatus, $currentOrder );
+                    $currentOrder->update_status( $newStatus, $orderNote );
+                }
+
+                $currentOrder->add_meta_data( __( 'Boxberry код', IN_WC_CRM ),  $order->code_Boxberry );             
             }
 
             echo $responseStr;
