@@ -70,7 +70,10 @@ class API
                 'price'     => apply_filters( 'inwccrm_boxberry_orderitem_price', $itemPrice, $order, $orderItem ),
                 'quantity'  => apply_filters( 'inwccrm_boxberry_orderitem_count', $itemQuantity, $order, $orderItem )
             );
-        }        
+        }
+
+        // В параметр weight нужно передавать вес в граммах, т.е. целое число
+        $weghtTotal = intval( $weghtTotal * 1000 );
 
         // Формирование и возврат заказа
         return array(
@@ -78,11 +81,11 @@ class API
             'order_id'      => apply_filters( 'inwccrm_boxberry_order_id', $order->get_order_number(), $order ),
             'PalletNumber'  => apply_filters( 'inwccrm_boxberry_palletnumber', '', $order ),
             'barcode'       => apply_filters( 'inwccrm_boxberry_barcode', '', $order ),
-            'price'         => apply_filters( 'inwccrm_boxberry_price', $order->get_total(), $order ),
+            'price'         => apply_filters( 'inwccrm_boxberry_price', $summTotal, $order ),
             'payment_sum'   => apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ),
             'delivery_sum'  => apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order ),
             'issue'         => apply_filters( 'inwccrm_boxberry_issue', '', $order ),
-            'vid'           => apply_filters( 'inwccrm_boxberry_vid', 1, $order ),
+            'vid'           => apply_filters( 'inwccrm_boxberry_vid', 3, $order ), // 1- доставка до ПВЗ, 2 - доставка курьером, 3 - почта
 
             'kurdost'  => array(
                 'index'     => apply_filters( 'inwccrm_boxberry_kurdost_index', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
@@ -99,9 +102,10 @@ class API
                 'comentk'    => apply_filters( 'inwccrm_boxberry_kurdost_comentk', '', $order ),
             ),
 
+            // 
             'shop'  => array(
-                'name'   => apply_filters( 'inwccrm_boxberry_shop_name',  get_option( 'blogname' ), $order ),
-                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', '', $order ),
+                'name'   => apply_filters( 'inwccrm_boxberry_shop_name',  '', $order ), // пункт выдачи заказа
+                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', '010', $order ), // пункт приёма заказа
             ),
             
             'customer' => array(
@@ -127,12 +131,12 @@ class API
             'notice' => apply_filters( 'inwccrm_boxberry_notice', $order->get_customer_note(), $order ),
 
             'weights' => array(
-                'weight'   => apply_filters( 'inwccrm_boxberry_weights_weight', $weghtTotal, $order ),
+                'weight'   => apply_filters( 'inwccrm_boxberry_weights_weight', $weghtTotal, $order ), //В параметр weight нужно передавать вес в граммах, т.е. целое число,
                 'x'        => apply_filters( 'inwccrm_boxberry_weights_x', 1, $order ),
                 'y'        => apply_filters( 'inwccrm_boxberry_weights_y', 1, $order ),
                 'z'        => apply_filters( 'inwccrm_boxberry_weights_z', 1, $order ),
                 'barcode'  => apply_filters( 'inwccrm_boxberry_weights_barcode', '', $order ),
-                'weight2'  => apply_filters( 'inwccrm_boxberry_weights_weight2', 0, $order ),
+                'weight2'  => apply_filters( 'inwccrm_boxberry_weights_weight2', 5, $order ), // Судя по всему, вес коробки
                 'barcode2' => apply_filters( 'inwccrm_boxberry_weights_barcode2', '', $order ),
                 'x2'       => apply_filters( 'inwccrm_boxberry_weights_x2', 1, $order ),
                 'y2'       => apply_filters( 'inwccrm_boxberry_weights_y2', 1, $order ),

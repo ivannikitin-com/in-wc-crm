@@ -154,8 +154,8 @@ class Boxberry extends Base
                 }
 
                 // Сообщение
-                $resultMessage = ( isset( $resultObj->err ) ) ? 
-                    __( 'Заказ', IN_WC_CRM ) . ' #' . $order_id . ': ' .  $resultObj->err : '';
+                $resultMessage = __( 'Заказ', IN_WC_CRM ) . ' #' . $order_id . ': ';
+                $resultMessage .= ( isset( $resultObj->err ) ) ? $resultObj->err : 'создан';
 
                 // Результат в строку результата
                 $responseStr .= ' ' . $resultMessage . PHP_EOL . PHP_EOL;                   
@@ -172,7 +172,6 @@ class Boxberry extends Base
                 {
                     continue;
                 }
-
 
                 // Установим новый статус
                 $currentStatus = $currentOrder->get_status();
