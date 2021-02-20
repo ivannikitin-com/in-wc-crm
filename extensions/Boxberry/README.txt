@@ -1,5 +1,6 @@
 Документация по апи 
-https://storage.yandexcloud.net/boxberrysite-public/it_solutions/web-%D1%81%D0%B5%D1%80%D0%B2%D0%B8%D1%81%D1%8B%20Boxberry%20account.boxberry.ru%20-%20%D0%9D%D0%BE%D0%B2%D1%8B%D0%B9%20%D0%9B%D0%9A%20%D0%98%D0%9C.pdf
+
+https://help.boxberry.ru/pages/viewpage.action?pageId=763005
 
 https://documenter.getpostman.com/view/7354859/SzezaWVs?version=latest#190f1627-c943-4b26-a3ac-58db8e7355e0
 

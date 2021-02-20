@@ -62,18 +62,29 @@ class API
             $summTotal += $itemTotalPrice;
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
             $weghtTotal += $itemWeghtTotal;
+
+            //  Массив товарных вложений
             $items[] = array(
+                // Артикул товара
                 'id'        => apply_filters( 'inwccrm_boxberry_orderitem_id', $sku, $order, $orderItem ),
+                // Наименование товара
                 'name'      => apply_filters( 'inwccrm_boxberry_orderitem_name', $product->get_name(), $order, $orderItem ),
+                // Единица измерения
                 'UnitName'  => apply_filters( 'inwccrm_boxberry_orderitem_unitname', 'шт', $orderItemId, $order, $orderItem ),
+                // Процент НДС (число от 0 до 20)
                 'nds'       => apply_filters( 'inwccrm_boxberry_orderitem_nds', 0, $orderItemId, $order, $orderItem ),
+                // Цена за единицу товара
                 'price'     => apply_filters( 'inwccrm_boxberry_orderitem_price', $itemPrice, $order, $orderItem ),
+                // Количество единиц товара
                 'quantity'  => apply_filters( 'inwccrm_boxberry_orderitem_count', $itemQuantity, $order, $orderItem )
             );
         }
 
         // В параметр weight нужно передавать вес в граммах, т.е. целое число
         $weghtTotal = intval( $weghtTotal * 1000 );
+        //  вес первого или единственного тарного места, в граммах. Минимальное значение 5 г, максимальное – 31000 г.
+        if ( $weghtTotal < 5 ) $weghtTotal = 5;
+        if ( $weghtTotal > 31000 ) $weghtTotal = 31000;
 
         // Формирование и возврат заказа
         return array(
@@ -81,12 +92,33 @@ class API
             'order_id'      => apply_filters( 'inwccrm_boxberry_order_id', $order->get_order_number(), $order ),
             'PalletNumber'  => apply_filters( 'inwccrm_boxberry_palletnumber', '', $order ),
             'barcode'       => apply_filters( 'inwccrm_boxberry_barcode', '', $order ),
+            // Объявленная стоимость посылки БЕЗ доставки
             'price'         => apply_filters( 'inwccrm_boxberry_price', $summTotal, $order ),
-            'payment_sum'   => apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ),
+            // Сумма к оплате (сумма, которую необходимо взять с получателя).
+            // Для полностью предоплаченного заказа указывать 0.
+            'payment_sum'   => apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ), 
+            // Стоимость доставки объявленная получателю 
             'delivery_sum'  => apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order ),
+            // Вид выдачи заказа, возможные значения:
+            //  0 - выдача без вскрытия, 
+            //  1 - выдача со вскрытием и проверкой комплектности,
+            //  2 - выдача части вложения.
             'issue'         => apply_filters( 'inwccrm_boxberry_issue', '', $order ),
-            'vid'           => apply_filters( 'inwccrm_boxberry_vid', 3, $order ), // 1- доставка до ПВЗ, 2 - доставка курьером, 3 - почта
+            // Вид доставки:
+            //  1 - Доставка до пункта выдачи (ПВЗ, «Экспорт из РФ»)
+            //  2 - Курьерская доставка (КД)
+            //  3 - доставка Почтой России (ПР)
+            'vid'           => apply_filters( 'inwccrm_boxberry_vid', 3, $order ),
+            // Тип упаковки: 
+            //  1 - упаковка ИМ, 
+            //  2 - упаковка Boxberry
+            'packing_type'  => apply_filters( 'inwccrm_boxberry_packing_type', 1, $order ),
+            // Строгая упаковка: 
+            //  1 - изменение упаковки в процессе транспортировки запрещено, 
+            //  0 - разрешено
+            'packing_strict'=> apply_filters( 'inwccrm_boxberry_packing_strict', 1, $order ),
 
+            // 	Блок с информацией о курьерской доставке и доставке Почтой России
             'kurdost'  => array(
                 'index'     => apply_filters( 'inwccrm_boxberry_kurdost_index', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
                 'citi'      => apply_filters( 'inwccrm_boxberry_kurdost_citi', ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), $order ),
@@ -94,20 +126,29 @@ class API
                     ( ! empty( $order->get_shipping_address_1() ) ) ? 
                     $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
                     $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                // Время курьерской доставки ОТ (формат чч:мм)
                 'timesfrom1' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom1', '', $order ),
+                // Время курьерской доставки ДО (формат чч:мм)
                 'timesto1'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto1', '', $order ),
+                // Альтернативное время, от
                 'timesfrom2' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom2', '', $order ),
+                // Альтернативное время, до
                 'timesto2'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto2', '', $order ),
+                // Время доставки текстовый формат  (не используется)
                 'timep'      => apply_filters( 'inwccrm_boxberry_kurdost_timep', '', $order ),
+                // Комментарий по доставке (не используется)
                 'comentk'    => apply_filters( 'inwccrm_boxberry_kurdost_comentk', '', $order ),
             ),
 
-            // 
+            // Блок с информацией о пункте приема и пункте выдачи отправления
             'shop'  => array(
-                'name'   => apply_filters( 'inwccrm_boxberry_shop_name',  '', $order ), // пункт выдачи заказа
-                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', '010', $order ), // пункт приёма заказа
+                // Код пункта выдачи 
+                'name'   => apply_filters( 'inwccrm_boxberry_shop_name',  '', $order ),
+                // Код пункта поступления
+                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', '010', $order ),
             ),
             
+            // Блок с информацией о получателе отправления
             'customer' => array(
                 'fio'    => apply_filters( 'inwccrm_boxberry_customer_fio', 
                     ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
@@ -127,7 +168,10 @@ class API
                 'bik'     => apply_filters( 'inwccrm_boxberry_customer_bik', '', $order ),              
             ),
 
+            //  Массив товарных вложений
             'items' => $items,
+
+            // Примечание к заказу.
             'notice' => apply_filters( 'inwccrm_boxberry_notice', $order->get_customer_note(), $order ),
 
             'weights' => array(
@@ -136,11 +180,6 @@ class API
                 'y'        => apply_filters( 'inwccrm_boxberry_weights_y', 1, $order ),
                 'z'        => apply_filters( 'inwccrm_boxberry_weights_z', 1, $order ),
                 'barcode'  => apply_filters( 'inwccrm_boxberry_weights_barcode', '', $order ),
-                'weight2'  => apply_filters( 'inwccrm_boxberry_weights_weight2', 5, $order ), // Судя по всему, вес коробки
-                'barcode2' => apply_filters( 'inwccrm_boxberry_weights_barcode2', '', $order ),
-                'x2'       => apply_filters( 'inwccrm_boxberry_weights_x2', 1, $order ),
-                'y2'       => apply_filters( 'inwccrm_boxberry_weights_y2', 1, $order ),
-                'z2'       => apply_filters( 'inwccrm_boxberry_weights_z2', 1, $order ),
             ),
         );
     }
