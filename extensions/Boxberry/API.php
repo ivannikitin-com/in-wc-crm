@@ -109,14 +109,6 @@ class API
             //  2 - Курьерская доставка (КД)
             //  3 - доставка Почтой России (ПР)
             'vid'           => apply_filters( 'inwccrm_boxberry_vid', 3, $order ),
-            // Тип упаковки: 
-            //  1 - упаковка ИМ, 
-            //  2 - упаковка Boxberry
-            'packing_type'  => apply_filters( 'inwccrm_boxberry_packing_type', 1, $order ),
-            // Строгая упаковка: 
-            //  1 - изменение упаковки в процессе транспортировки запрещено, 
-            //  0 - разрешено
-            'packing_strict'=> apply_filters( 'inwccrm_boxberry_packing_strict', 1, $order ),
 
             // 	Блок с информацией о курьерской доставке и доставке Почтой России
             'kurdost'  => array(
@@ -138,6 +130,14 @@ class API
                 'timep'      => apply_filters( 'inwccrm_boxberry_kurdost_timep', '', $order ),
                 // Комментарий по доставке (не используется)
                 'comentk'    => apply_filters( 'inwccrm_boxberry_kurdost_comentk', '', $order ),
+                // Тип упаковки: 
+                //  1 - упаковка ИМ, 
+                //  2 - упаковка Boxberry
+                'packing_type'  => apply_filters( 'inwccrm_boxberry_packing_type', 1, $order ),
+                // Строгая упаковка: 
+                //  1 - изменение упаковки в процессе транспортировки запрещено, 
+                //  0 - разрешено
+                'packing_strict'=> apply_filters( 'inwccrm_boxberry_packing_strict', 1, $order ),                
             ),
 
             // Блок с информацией о пункте приема и пункте выдачи отправления
