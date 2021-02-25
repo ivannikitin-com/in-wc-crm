@@ -157,6 +157,13 @@ class Boxberry extends Base
                 $resultMessage = __( 'Заказ', IN_WC_CRM ) . ' #' . $order_id . ': ';
                 $resultMessage .= ( isset( $resultObj->err ) ) ? $resultObj->err : 'создан';
 
+                // Если в ответе присуствует код 
+                if ( isset( $resultObj->track ) )
+                {
+                    $resultMessage .= '. ' . __( 'Трек', IN_WC_CRM ) . ': ' . $resultObj->track;
+                } 
+                    
+
                 // Результат в строку результата
                 $responseStr .= ' ' . $resultMessage . PHP_EOL . PHP_EOL;                   
 
