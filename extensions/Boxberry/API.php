@@ -86,6 +86,12 @@ class API
         if ( $weghtTotal < 5 ) $weghtTotal = 5;
         if ( $weghtTotal > 31000 ) $weghtTotal = 31000;
 
+        // они просят передавать 9001122333 без +7 или +8
+        // а для казахстана и беларуси 12 последних цифр
+        $phone = preg_replace( '/[\s\-\(\)\.]/', '', $order->get_billing_phone() );
+        if ( strpos( $phone, '+7') == 0 ) $phone = str_replace( '+7', '', $phone );
+        $phone = str_replace( '+', '', $phone );
+
         // Формирование и возврат заказа
         return array(
             'updateByTrack' => apply_filters( 'inwccrm_boxberry_updatebytrack', '', $order ),
@@ -155,7 +161,7 @@ class API
                     $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
                     $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(),
                     $order ),
-                'phone'   => apply_filters( 'inwccrm_boxberry_customer_phone', preg_replace('/[\s\-\(\)\.]/', '', $order->get_billing_phone() ), $order ),
+                'phone'   => apply_filters( 'inwccrm_boxberry_customer_phone', $phone, $order ),
                 'phone2'  => apply_filters( 'inwccrm_boxberry_customer_phone2', '', $order ),
                 'email'   => apply_filters( 'inwccrm_boxberry_customer_email', $order->get_billing_email(), $order ),
                 'name'    => apply_filters( 'inwccrm_boxberry_customer_name', $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), $order ),
