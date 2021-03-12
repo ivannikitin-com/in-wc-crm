@@ -92,6 +92,9 @@ class API
         if ( strpos( $phone, '+7') == 0 ) $phone = str_replace( '+7', '', $phone );
         $phone = str_replace( '+', '', $phone );
 
+        // Дефолтовое значение delivery_date
+        $delivery_date = date( 'Y-m-d', time() + DAY_IN_SECONDS );
+
         // Формирование и возврат заказа
         return array(
             'updateByTrack' => apply_filters( 'inwccrm_boxberry_updatebytrack', '', $order ),
@@ -124,6 +127,16 @@ class API
                     ( ! empty( $order->get_shipping_address_1() ) ) ? 
                     $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
                     $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                // Следующие значения передаются только для Курьерской доставки по направлениям: 
+                //      Москва - Москва
+                //      Москва - Санкт-Петербург
+                //      Санкт-Петербург - Москва
+                //      Санкт-Петербург - Санкт-Петербург
+                //
+                // Дата курьерской доставки (формат ГГГГ-ММ-ДД). 
+                // Может принимать значения +1 +5 дней от текущей даты.
+                // Значение по умолчанию - текущая дата + 1 день.
+                'delivery_date' => apply_filters( 'inwccrm_boxberry_kurdost_delivery_date', $delivery_date, $order ),
                 // Время курьерской доставки ОТ (формат чч:мм)
                 'timesfrom1' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom1', '', $order ),
                 // Время курьерской доставки ДО (формат чч:мм)
