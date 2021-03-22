@@ -1,9 +1,6 @@
 <?php
 // Методы доставки
-$shippingMethods = array_merge(
-    array('_all' => __( 'Все методы', IN_WC_CRM )), 
-    $this->getShippingMethods()
-);
+$shippingMethods = $this->getShippingMethods();
 
 // Методы оплаты
 $paymentMethods = array_merge(
@@ -20,6 +17,10 @@ $orderStatuses = array_merge(
 $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processing' );
 
 ?>
+<style type="text/css">
+.select2-container {margin: 0 2px 0 2px;}
+.tablenav.top #doaction, #doaction2, #post-query-submit {margin: 0px 4px 0 4px;}
+</style>
 <!-- Элементы управления выборкой заказов -->
 <section id="orderListControls" style="text-align: center">
   <style>
@@ -34,15 +35,15 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
       <input id="dateTo" type="text" class="datePicker">
   </span>
   <hr>
-  <span>
+  <span class="select2-container">
       <label for="shipping_method"><?php esc_html_e( 'Доставка', IN_WC_CRM ); ?></label>
-      <select id="shipping_method">
+      <select id="shipping_method" multiple>
         <?php foreach ( $shippingMethods as $methodCode => $methodTitle ): ?>
-            <option value="<?php echo $methodCode?>"><?php echo $methodTitle ?></option>
+            <option value="<?php echo $methodCode?>" selected><?php echo $methodTitle ?></option>
         <?php endforeach ?>
       </select>
   </span>
-  <span>
+  <span >
       <label for="payment_method"><?php esc_html_e( 'Оплата', IN_WC_CRM ); ?></label>
       <select id="payment_method">
         <?php foreach ( $paymentMethods as $methodCode => $methodTitle ): ?>

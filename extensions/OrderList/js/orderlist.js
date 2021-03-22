@@ -5,6 +5,14 @@ jQuery(function ($){
     // ------------------------------ Выбор дат ----------------------------
     $('.datePicker').datepicker();
 
+    // ------------------------------ Select2 ----------------------------
+    if( $( 'select' ).length > 0 ) {
+        $( 'select' ).select2();
+        $( document.body ).on( "click", function() {
+             $( 'select' ).select2();
+          });
+    }
+
     // ---------------------- Инициализация DataTable ----------------------
     var columns = [];
     for (var colId in IN_WC_CRM_OrderList.columns ){

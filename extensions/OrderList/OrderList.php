@@ -122,6 +122,12 @@ class OrderList extends BaseAdminPage
         wp_enqueue_script('jquery-ui-datepicker');
         wp_enqueue_style( 'jquery-ui-theme', '//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css' );
 
+        // Select 2
+        wp_register_style( 'select2css', '//cdnjs.cloudflare.com/ajax/libs/select2/3.4.8/select2.css', false, '1.0', 'all' );
+        wp_register_script( 'select2', '//cdnjs.cloudflare.com/ajax/libs/select2/3.4.8/select2.js', array( 'jquery' ), '1.0', true );
+        wp_enqueue_style( 'select2css' );
+        wp_enqueue_script( 'select2' ); 
+
         /* Font Awesome */
         wp_enqueue_style( 'fa-5', Plugin::get()->url . 'asserts/fontawesome-free-5.11.2-web/css/all.css' );
 
@@ -203,7 +209,14 @@ class OrderList extends BaseAdminPage
     {
         // Параметры запроса
         $orderStatus = ( isset( $_POST['order_status'] ) ) ? trim( sanitize_text_field( $_POST['order_status'] ) ) : '';
-        $shippingMehod = ( isset( $_POST['shipping_method'] ) ) ? trim( sanitize_text_field( $_POST['shipping_method'] ) ) : '';
+
+        $shippingMehods = array();
+        $shippingMehodIds = ( isset( $_POST['shipping_method'] ) ) ? (array) $_POST['shipping_method'] : array();
+        $allShippingMethods = $this->getShippingMethods();
+        foreach ($shippingMehodIds as $shippingId) {
+            $shippingMehods[] = $allShippingMethods[ $shippingId ];
+        }
+
         $paymentMethod = ( isset( $_POST['payment_method'] ) ) ? trim( sanitize_text_field( $_POST['payment_method'] ) ) : '';
         $dateFrom = ( isset( $_POST['dateFrom'] ) ) ? trim( sanitize_text_field( $_POST['dateFrom'] ) ) : '';
         $dateTo = ( isset( $_POST['dateTo'] ) ) ? trim( sanitize_text_field( $_POST['dateTo'] ) ) : '';
@@ -252,15 +265,15 @@ class OrderList extends BaseAdminPage
 
         // Запрос заказов
         $result = array();
-        $shippingMethods = $this->getShippingMethods();
+
         $orderColumns = $this->getColumns();
         $orders = wc_get_orders( $args );
         foreach ($orders as $order)
         {
-            if ( ! empty( $shippingMehod ) )
+            if ( ! empty( $shippingMehods ) )
             {
                 // Фильтруем по методам доставки
-                if ( $order->get_shipping_method() != $shippingMethods[ $shippingMehod ] ) 
+                if ( ! in_array( $order->get_shipping_method(), $shippingMehods ))
                     continue;
             }
 
