@@ -6,10 +6,10 @@ jQuery(function ($){
     $('.datePicker').datepicker();
 
     // ------------------------------ Select2 ----------------------------
-    if( $( 'select' ).length > 0 ) {
-        $( 'select' ).select2();
+    if( $( '#orderListControls select' ).length > 0 ) {
+        $( '#orderListControls select' ).select2();
         $( document.body ).on( "click", function() {
-             $( 'select' ).select2();
+             $( '#orderListControls select' ).select2();
           });
     }
 
