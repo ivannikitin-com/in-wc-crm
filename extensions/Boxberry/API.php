@@ -120,44 +120,44 @@ class API
             'vid'           => apply_filters( 'inwccrm_boxberry_vid', 3, $order ),
 
             // 	Блок с информацией о курьерской доставке и доставке Почтой России
-            'kurdost'  => array(
-                'index'     => apply_filters( 'inwccrm_boxberry_kurdost_index', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
-                'citi'      => apply_filters( 'inwccrm_boxberry_kurdost_citi', ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), $order ),
-                'addressp'  => apply_filters( 'inwccrm_boxberry_kurdost_addressp', 
-                    ( ! empty( $order->get_shipping_address_1() ) ) ? 
-                    $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
-                    $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
-                // Следующие значения передаются только для Курьерской доставки по направлениям: 
-                //      Москва - Москва
-                //      Москва - Санкт-Петербург
-                //      Санкт-Петербург - Москва
-                //      Санкт-Петербург - Санкт-Петербург
-                //
-                // Дата курьерской доставки (формат ГГГГ-ММ-ДД). 
-                // Может принимать значения +1 +5 дней от текущей даты.
-                // Значение по умолчанию - текущая дата + 1 день.
-                'delivery_date' => apply_filters( 'inwccrm_boxberry_kurdost_delivery_date', $delivery_date, $order ),
-                // Время курьерской доставки ОТ (формат чч:мм)
-                'timesfrom1' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom1', '', $order ),
-                // Время курьерской доставки ДО (формат чч:мм)
-                'timesto1'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto1', '', $order ),
-                // Альтернативное время, от
-                'timesfrom2' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom2', '', $order ),
-                // Альтернативное время, до
-                'timesto2'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto2', '', $order ),
-                // Время доставки текстовый формат  (не используется)
-                'timep'      => apply_filters( 'inwccrm_boxberry_kurdost_timep', '', $order ),
-                // Комментарий по доставке (не используется)
-                'comentk'    => apply_filters( 'inwccrm_boxberry_kurdost_comentk', '', $order ),
-                // Тип упаковки: 
-                //  1 - упаковка ИМ, 
-                //  2 - упаковка Boxberry
-                'packing_type'  => apply_filters( 'inwccrm_boxberry_packing_type', 1, $order ),
-                // Строгая упаковка: 
-                //  1 - изменение упаковки в процессе транспортировки запрещено, 
-                //  0 - разрешено
-                'packing_strict'=> apply_filters( 'inwccrm_boxberry_packing_strict', 1, $order ),                
-            ),
+            'kurdost'  => apply_filters( 'inwccrm_boxberry_kurdost', array(
+                    'index'     => apply_filters( 'inwccrm_boxberry_kurdost_index', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
+                    'citi'      => apply_filters( 'inwccrm_boxberry_kurdost_citi', ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), $order ),
+                    'addressp'  => apply_filters( 'inwccrm_boxberry_kurdost_addressp', 
+                        ( ! empty( $order->get_shipping_address_1() ) ) ? 
+                        $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
+                        $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                    // Следующие значения передаются только для Курьерской доставки по направлениям: 
+                    //      Москва - Москва
+                    //      Москва - Санкт-Петербург
+                    //      Санкт-Петербург - Москва
+                    //      Санкт-Петербург - Санкт-Петербург
+                    //
+                    // Дата курьерской доставки (формат ГГГГ-ММ-ДД). 
+                    // Может принимать значения +1 +5 дней от текущей даты.
+                    // Значение по умолчанию - текущая дата + 1 день.
+                    'delivery_date' => apply_filters( 'inwccrm_boxberry_kurdost_delivery_date', $delivery_date, $order ),
+                    // Время курьерской доставки ОТ (формат чч:мм)
+                    'timesfrom1' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom1', '', $order ),
+                    // Время курьерской доставки ДО (формат чч:мм)
+                    'timesto1'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto1', '', $order ),
+                    // Альтернативное время, от
+                    'timesfrom2' => apply_filters( 'inwccrm_boxberry_kurdost_timesfrom2', '', $order ),
+                    // Альтернативное время, до
+                    'timesto2'   => apply_filters( 'inwccrm_boxberry_kurdost_timesto2', '', $order ),
+                    // Время доставки текстовый формат  (не используется)
+                    'timep'      => apply_filters( 'inwccrm_boxberry_kurdost_timep', '', $order ),
+                    // Комментарий по доставке (не используется)
+                    'comentk'    => apply_filters( 'inwccrm_boxberry_kurdost_comentk', '', $order ),
+                    // Тип упаковки: 
+                    //  1 - упаковка ИМ, 
+                    //  2 - упаковка Boxberry
+                    'packing_type'  => apply_filters( 'inwccrm_boxberry_packing_type', 1, $order ),
+                    // Строгая упаковка: 
+                    //  1 - изменение упаковки в процессе транспортировки запрещено, 
+                    //  0 - разрешено
+                    'packing_strict'=> apply_filters( 'inwccrm_boxberry_packing_strict', 1, $order ),                
+                ), $order), // inwccrm_boxberry_kurdost
 
             // Блок с информацией о пункте приема и пункте выдачи отправления
             'shop'  => array(
@@ -178,7 +178,11 @@ class API
                 'phone2'  => apply_filters( 'inwccrm_boxberry_customer_phone2', '', $order ),
                 'email'   => apply_filters( 'inwccrm_boxberry_customer_email', $order->get_billing_email(), $order ),
                 'name'    => apply_filters( 'inwccrm_boxberry_customer_name', $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), $order ),
-                'address' => apply_filters( 'inwccrm_boxberry_customer_address', $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                'address' => apply_filters( 'inwccrm_boxberry_customer_address', 
+                ( ! empty( $order->get_shipping_address_1() ) ) ? 
+                        $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
+                        $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
+                // $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
                 'inn'     => apply_filters( 'inwccrm_boxberry_customer_inn', '', $order ),
                 'kpp'     => apply_filters( 'inwccrm_boxberry_customer_kpp', '', $order ),
                 'r_s'     => apply_filters( 'inwccrm_boxberry_customer_r_s', '', $order ),
@@ -232,6 +236,15 @@ class API
         {
             try
             {
+                Plugin::get()->log( __( 'Способ доставки', IN_WC_CRM ) . 
+                    ': ' . $order->get_shipping_method(), self::LOGFILE );
+                    
+                Plugin::get()->log( __( 'Адрес доставки', IN_WC_CRM ) . 
+                    ': ' . $order->get_shipping_address_1(), self::LOGFILE );
+
+                Plugin::get()->log( __( 'Заказ', IN_WC_CRM ) . 
+                    ': ' . var_export($order, true), self::LOGFILE );
+
                 // Данные заказа для передачи
                 $data = $this->getOrderData( $order );
                 Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
