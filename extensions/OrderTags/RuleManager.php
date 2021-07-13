@@ -29,7 +29,7 @@ class RuleManager
         $this->registerCPT();
 
         // Обработка новых заказов
-        add_action( 'woocommerce_new_order', array( $this, 'process' ) );
+        add_action( 'woocommerce_new_order', array( $this, 'process' ), 9999 );
 
         // Метабоксы правил
 		if ( is_admin() ) {
