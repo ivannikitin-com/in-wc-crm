@@ -88,7 +88,7 @@ class OrderTags extends Base
         global $submenu;
         
         // Метки заказов
-        $orderTagTaxonomyEdit = admin_url( 'edit-tags.php' ).'?taxonomy=' . OrderTag::TAXOMOMY;
+        $orderTagTaxonomyEdit = admin_url( 'edit-tags.php' ).'?taxonomy=' . OrderTag::TAXONOMY;
         $submenu[ IN_WC_CRM ][] = array( __( 'Метки заказов', IN_WC_CRM ), 'manage_woocommerce', $orderTagTaxonomyEdit );
 
         // Правила обработки заказов
@@ -181,7 +181,7 @@ class OrderTags extends Base
     private function getTags( $order )
     {
         // Получим все метки заказа (массив ID)
-        $terms = wp_get_post_terms( $order->get_id(), OrderTag::TAXOMOMY, array('fields' => 'all') );
+        $terms = wp_get_post_terms( $order->get_id(), OrderTag::TAXONOMY, array('fields' => 'all') );
         
         // Сформируем результат
         $result = '';
@@ -194,7 +194,7 @@ class OrderTags extends Base
     }
 
     /**
-     * Показывает элемент фильра для поиска по меткам
+     * Показывает элемент фильтра для поиска по меткам
      */
     public function showSearchControl()
     {
@@ -212,7 +212,7 @@ class OrderTags extends Base
         $selectedTagId = ( isset( $postData['order_tag'] ) ) ? (int) sanitize_text_field( $postData['order_tag'] )  : 0;
         if (! $selectedTagId ) return true;
         
-        $terms = wp_get_post_terms( $order->get_id(), OrderTag::TAXOMOMY, array('fields' => 'ids') );
+        $terms = wp_get_post_terms( $order->get_id(), OrderTag::TAXONOMY, array('fields' => 'ids') );
         return in_array( $selectedTagId, $terms ) ;
     }
 

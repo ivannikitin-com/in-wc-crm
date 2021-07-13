@@ -29,7 +29,8 @@ class RuleManager
         $this->registerCPT();
 
         // Обработка новых заказов
-        add_action( 'woocommerce_new_order', array( $this, 'process' ) );
+        //add_action( 'woocommerce_new_order', array( $this, 'process' ) );
+        add_action( 'woocommerce_checkout_order_created', array( $this, 'process' ) );
 
         // Метабоксы правил
 		if ( is_admin() ) {
@@ -166,7 +167,7 @@ class RuleManager
     {
         $currentTag = get_post_meta( $post->ID, self::RULE_TAG, true );
         $tags = get_terms(array(
-            'taxonomy'   => OrderTag::TAXOMOMY,
+            'taxonomy'   => OrderTag::TAXONOMY,
             'hide_empty' => false,
         ));
         include('views/metabox-tag.php');
@@ -230,7 +231,7 @@ class RuleManager
      * Обработка заказа WC
      * @param int|WC_Order  $order  Объект заказа WC
      */
-    public function process($order)
+    public function process( $order )
     {
         // Если заказ передан через ID, получим этот заказ
         if ( is_int( $order ) ) $order = wc_get_order( $order );
@@ -238,7 +239,7 @@ class RuleManager
         // Если найти заказ не удалось, ничего не делаем
         if ( ! $order ) return;
 
-        // Проверяем, заполлен ли кэш-массив правил
+        // Проверяем, заполнен ли кэш-массив правил
         if ( empty( $this->allRules) )
         {
             $this->allRules = array();
@@ -267,7 +268,7 @@ class RuleManager
             {
                 // Ставим метку на заказ
                 $tag = array( $rule['tag'] * 1 ); // https://developer.wordpress.org/reference/functions/wp_set_post_terms/
-                wp_set_post_terms( $order->get_id(), $tag, OrderTag::TAXOMOMY, true );
+                wp_set_post_terms( $order->get_id(), $tag, OrderTag::TAXONOMY, true );
             }
         }
     }

@@ -17,11 +17,11 @@ class OrderTag{
 
 		if ( is_admin() ) {
 
-			add_action( self::TAXOMOMY . '_add_form_fields',  array( $this, 'create_screen_fields'), 10, 1 );
-			add_action( self::TAXOMOMY . '_edit_form_fields', array( $this, 'edit_screen_fields' ),  10, 2 );
+			add_action( self::TAXONOMY . '_add_form_fields',  array( $this, 'create_screen_fields'), 10, 1 );
+			add_action( self::TAXONOMY . '_edit_form_fields', array( $this, 'edit_screen_fields' ),  10, 2 );
 
-			add_action( 'created_' . self::TAXOMOMY, array( $this, 'save_data' ), 10, 1 );
-			add_action( 'edited_' . self::TAXOMOMY,  array( $this, 'save_data' ), 10, 1 );
+			add_action( 'created_' . self::TAXONOMY, array( $this, 'save_data' ), 10, 1 );
+			add_action( 'edited_' . self::TAXONOMY,  array( $this, 'save_data' ), 10, 1 );
 
 		}        
     }
@@ -29,7 +29,7 @@ class OrderTag{
     /**
      * Таксономия
      */
-    const TAXOMOMY = 'inwccrm_wc_order_tag';
+    const TAXONOMY = 'inwccrm_wc_order_tag';
 
     /**
      * Регистрация таксономии
@@ -45,7 +45,7 @@ class OrderTag{
             'parent_item_colon'          => __( 'Родительская метка:', IN_WC_CRM ),
             'new_item_name'              => __( 'Новая метка', IN_WC_CRM ),
             'add_new_item'               => __( 'Добавить новую метку', IN_WC_CRM ),
-            'edit_item'                  => __( 'Релактировать', IN_WC_CRM ),
+            'edit_item'                  => __( 'Редактировать', IN_WC_CRM ),
             'update_item'                => __( 'Обновить', IN_WC_CRM ),
             'view_item'                  => __( 'Просмотр', IN_WC_CRM ),
             'separate_items_with_commas' => __( 'Разделите метки запятыми', IN_WC_CRM ),
@@ -67,7 +67,7 @@ class OrderTag{
             'show_in_nav_menus'          => true,
             'show_tagcloud'              => false,
         );
-        register_taxonomy( self::TAXOMOMY, array( 'shop_order' ), $args );
+        register_taxonomy( self::TAXONOMY, array( 'shop_order' ), $args );
     }
 
 
