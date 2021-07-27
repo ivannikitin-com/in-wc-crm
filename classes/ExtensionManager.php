@@ -65,7 +65,14 @@ class ExtensionManager
         
         // Хук на создание или добавление основного меню
         add_action( 'admin_menu', array( $this, 'addMenu' ) );
+
+        // Хук на подключение скриптов для админки
+        add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
     }
+
+    public function admin_scripts(){
+        wp_enqueue_script( 'savesettings', plugins_url( '/savesettings.js' , __FILE__ ), array( 'jquery'), null, true );
+    }    
 
 	/**
 	 * Инициализация расширений

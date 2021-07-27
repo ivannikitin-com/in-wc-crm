@@ -15,6 +15,8 @@ class Base implements IExtension
         $this->paramSection = str_replace( '\\', '-',  get_class( $this ) );
         $this->enabledPamam = $this->paramSection . '-enabled';
         $this->settings = ( $this->hasSettings() ) ? $this->getSettings() : array();
+        //Описываем функцию для обработки сохранения настроек по ajax-запросу
+        add_action( 'wp_ajax_saveSettings', array($this, 'ajax_saveSettings' ) );
     }
 
     /**
@@ -91,6 +93,20 @@ class Base implements IExtension
     {
         $this->settings[ $this->enabledPamam ] = isset( $_POST[ $this->enabledPamam ] ); 
         return update_option( $this->paramSection, $this->settings );
+    }
+
+    /**
+     * Сохраняет массив настроек при ajax-запросе
+     * @paran mixed $settings массив настроек
+     */
+    public function ajax_saveSettings()
+    {
+        if (isset($_POST['extensionName']) && isset($_POST[ 'enabled'])) {
+            $this->settings[ $this->enabledPamam ] = $_POST[ 'enabled'];
+            update_option( $this->paramSection,$this->settings);
+        }
+        echo "Settings changed successfully";
+        die();
     }
     
     /**
