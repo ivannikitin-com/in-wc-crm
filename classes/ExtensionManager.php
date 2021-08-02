@@ -71,7 +71,7 @@ class ExtensionManager
     }
 
     public function admin_scripts(){
-        wp_enqueue_script( 'savesettings', plugins_url( '/savesettings.js' , __FILE__ ), array( 'jquery'), null, true );
+        wp_enqueue_script( 'savesettings', plugins_url( '../asserts/js/savesettings.js' , __FILE__ ), array( 'jquery'), null, true );
     }    
 
 	/**

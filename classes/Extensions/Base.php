@@ -100,12 +100,15 @@ class Base implements IExtension
      * @paran mixed $settings массив настроек
      */
     public function ajax_saveSettings()
-    {
+    {       
         if (isset($_POST['extensionName']) && isset($_POST[ 'enabled'])) {
-            $this->settings[ $this->enabledPamam ] = $_POST[ 'enabled'];
-            update_option( $this->paramSection,$this->settings);
+            $cur_extension = str_replace( '\\', '-',  __NAMESPACE__ ).'-'.$_POST['extensionName'];
+            $cur_settings = get_option( $cur_extension );
+            $old_value = $cur_settings[$cur_extension.'-enabled'];
+            $cur_settings[$cur_extension.'-enabled'] = ($_POST[ 'enabled'])?$_POST[ 'enabled']:false;
+            update_option( $cur_extension, $cur_settings );
+            //echo $cur_extension.'-enabled setting is changed from ' . $old_value . ' to ' . $cur_settings[$cur_extension .'-enabled']; 
         }
-        echo "Settings changed successfully";
         die();
     }
     

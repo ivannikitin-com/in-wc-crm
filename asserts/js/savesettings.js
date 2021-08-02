@@ -4,10 +4,10 @@ jQuery( function( $ ) {
 			var extensionName = $(this).data('extension');
 			var enabled;
 			if ($(this).is(':checked')) {
-				enabled = 1
+				enabled = '1'
 			} else 
 			{
-				enabled = 0
+				enabled = 'false'
 			}
 			$.ajax({
 				type:'POST',
