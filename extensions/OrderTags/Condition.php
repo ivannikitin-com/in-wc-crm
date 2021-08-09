@@ -42,6 +42,8 @@ class Condition
             'order_items_count'     =>  __( 'Число товарных позиций в заказе', IN_WC_CRM ),
             'order_item_sku'        =>  __( 'Артикул товара', IN_WC_CRM ),
             'order_item_title'      =>  __( 'Название товара', IN_WC_CRM ),
+            'user_orders_count'     =>  __( 'Число заказов пользователя', IN_WC_CRM ),
+            'user_orders_status'    =>  __( 'Статус предыдущих заказов', IN_WC_CRM )
         );
 
         // Операции сравнения
@@ -52,8 +54,8 @@ class Condition
             '!gt'  =>  __( 'Не больше', IN_WC_CRM ),
             'lt'   =>  __( 'Меньше', IN_WC_CRM ),
             '!lt'  =>  __( 'Не меньше', IN_WC_CRM ),
-            're'   =>  __( 'Соотвествует регулярному выражению', IN_WC_CRM ),
-            '!re'  =>  __( 'Не соотвествует регулярному выражению', IN_WC_CRM ),
+            're'   =>  __( 'Соответствует регулярному выражению', IN_WC_CRM ),
+            '!re'  =>  __( 'Не соответствует регулярному выражению', IN_WC_CRM ),
         );        
     }
 
@@ -76,7 +78,7 @@ class Condition
     }
 
     /**
-     * Проверяет, соотвествует ли заказ условиям
+     * Проверяет, соответствует ли заказ условиям
      * @param WC_Order  $order          Заказ WC
      * @param mixed     $conditions     Массив условий
      * @return bool
@@ -125,7 +127,7 @@ class Condition
                 break;
             }
 
-            // Новые операции, возможно определенные фильром
+            // Новые операции, возможно определенные фильтром
             $result = apply_filters( 'inwccrm_ordertags_check', $result, $order, $param, $condition, $value );
 
             // Если результат false, дальше проверку можно не делать (ленивое вычисление)
@@ -136,7 +138,7 @@ class Condition
     }
     
     /**
-     * Функция возвращает треубуемый параметр по имени
+     * Функция возвращает требуемый параметр по имени
      * @param string    $param  Имя параметра
      * @param WC_order  $order  Заказ WC
      * @return int|float|string
@@ -219,8 +221,61 @@ class Condition
                     $titleArray[] = $item->get_name();
                 }
                 $paramValue = implode("\t", $titleArray);
-            break;           
+            break;
+            
+            // -------------------- Заказы пользователя ------------------
+            case 'user_orders_count':
+                $paramValue = 0;
+                
+                // ID пользователя
+                $user_id = get_current_user_id();
 
+                // Если пользователь не авторизован
+                if ( $user_id == 0 )
+                {
+                    // Пытаемся найти его по E-mail в текущем заказе
+                    $user = get_user_by( 'email', $order->get_billing_email() );
+                    if ( $user )
+                    {
+                        $user_id = $user->ID;
+                    }
+                }
+
+                if ( $user_id != 0 )
+                {
+                    $user_orders = wc_get_orders( array(
+                        'customer_id' => $user_id
+                    ) );
+                    $paramValue = count( $user_orders );
+                }
+            break;
+
+            case 'user_orders_status':
+                $paramValue = '';
+                $user_id = get_current_user_id();
+
+                // Если пользователь не авторизован
+                if ( $user_id == 0 )
+                {
+                    // Пытаемся найти его по E-mail в текущем заказе
+                    $user = get_user_by( 'email', $order->get_billing_email() );
+                    if ( $user )
+                    {
+                        $user_id = $user->ID;
+                    }
+                }
+
+                if ( $user_id != 0 )
+                {
+                    $user_orders = wc_get_orders(array(
+                        'customer_id' => $user_id
+                    ));
+                    foreach ($user_orders as $previous_order) 
+                    {
+                        $paramValue .= $order->get_status() . "\t";
+                    }
+                }         
+            break;
         }
 
         return apply_filters( 'inwccrm_ordertags_get_param', $paramValue, $order, $param );
