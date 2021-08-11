@@ -5,8 +5,16 @@
  */
 
 namespace IN_WC_CRM\Extensions\OrderTags;
+use \IN_WC_CRM\Plugin as Plugin;
+
 class Condition
 {
+    /**
+     * Лог файл
+     */
+    const LOGFILE = 'ordertags-condition.log';
+
+
     /**
      * Параметры проверки
      * @var mixed 
@@ -274,7 +282,8 @@ class Condition
                     {
                         $paramValue .= $order->get_status() . "\t";
                     }
-                }         
+                }
+                Plugin::get()->log( 'Order #' . $order->ID .  ' user_orders_status: ' . $paramValue, self::LOGFILE );         
             break;
         }
 
