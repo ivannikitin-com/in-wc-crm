@@ -6,6 +6,7 @@
 
 namespace IN_WC_CRM\Extensions\OrderTags;
 use \IN_WC_CRM\Plugin as Plugin;
+use \WC_Coupon as WC_Coupon;
 
 class Condition
 {
@@ -50,6 +51,8 @@ class Condition
             'order_items_count'     =>  __( 'Число товарных позиций в заказе', IN_WC_CRM ),
             'order_item_sku'        =>  __( 'Артикул товара', IN_WC_CRM ),
             'order_item_title'      =>  __( 'Название товара', IN_WC_CRM ),
+            'order_coupon_code'     =>  __( 'Купон в заказе', IN_WC_CRM ),
+            'order_coupon_amount'   =>  __( 'Величина скидки по купону в заказе', IN_WC_CRM ),
             'user_orders_count'     =>  __( 'Число заказов пользователя', IN_WC_CRM ),
             'user_orders_status'    =>  __( 'Статус предыдущих заказов', IN_WC_CRM )
         );
@@ -230,6 +233,26 @@ class Condition
                 }
                 $paramValue = implode("\t", $titleArray);
             break;
+
+            case 'order_coupon_code':
+                $paramValue = '';
+                $couponArray = array();
+                foreach( $order->get_used_coupons() as $coupon_code )
+                {
+                    $couponArray[] = $coupon_code;
+                }
+                $paramValue = implode("\t", $couponArray);
+            break;
+
+            case 'order_coupon_amount':
+                $paramValue = 0;
+                $couponArray = array();
+                foreach( $order->get_used_coupons() as $coupon_code )
+                {
+                    $coupon = new WC_Coupon($coupon_code);
+                    $paramValue += $coupon->get_amount();
+                }
+            break;            
             
             // -------------------- Заказы пользователя ------------------
             case 'user_orders_count':
@@ -289,6 +312,5 @@ class Condition
 
         return apply_filters( 'inwccrm_ordertags_get_param', $paramValue, $order, $param );
     }
-
 
 }
