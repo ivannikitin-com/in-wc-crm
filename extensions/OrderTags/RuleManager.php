@@ -247,7 +247,9 @@ class RuleManager
             // Выбираем все правила
             $ruleIds = get_posts( array( 
                 'post_type' => self::CPT,
-                'fields'    => 'ids'
+                'fields'    => 'ids',
+                'numberposts' => -1,
+                'post_status'=>'publish'
             ) );
             
             // Формируем кэш-массив правил
