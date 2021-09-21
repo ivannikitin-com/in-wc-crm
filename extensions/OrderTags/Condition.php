@@ -45,6 +45,7 @@ class Condition
             'billing_country'       =>  __( 'Страна оплаты', IN_WC_CRM ),
             'billing_city'          =>  __( 'Город оплаты', IN_WC_CRM ),
             'shipping_country'      =>  __( 'Страна доставки', IN_WC_CRM ),
+            'shipping_state'      =>  __( 'Регион доставки', IN_WC_CRM ),
             'shipping_city'         =>  __( 'Город доставки', IN_WC_CRM ),
             'order_total'           =>  __( 'Сумма заказа', IN_WC_CRM ),
             'order_items'           =>  __( 'Число единиц товаров в заказе', IN_WC_CRM ),
@@ -197,6 +198,10 @@ class Condition
             case 'shipping_country':  
                 $paramValue = $order->get_shipping_country();
             break;
+
+            case 'shipping_state':  
+                $paramValue = $order->get_shipping_state();
+            break;            
 
             case 'shipping_city':  
                 $paramValue = $order->get_shipping_city();
