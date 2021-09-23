@@ -66,6 +66,7 @@ class Condition
             '!gt'  =>  __( 'Не больше', IN_WC_CRM ),
             'lt'   =>  __( 'Меньше', IN_WC_CRM ),
             '!lt'  =>  __( 'Не меньше', IN_WC_CRM ),
+            'con'  =>  __( 'Содержит строку', IN_WC_CRM ),
             're'   =>  __( 'Соответствует регулярному выражению', IN_WC_CRM ),
             '!re'  =>  __( 'Не соответствует регулярному выражению', IN_WC_CRM ),
         );        
@@ -129,6 +130,10 @@ class Condition
                 case '!gt':
                     $result = ! ($param > $value);
                 break;
+
+                case 'con': ;
+                    $result = (mb_strpos( $param, $value )===false) ? false : true;  
+                break;                
 
                 case 're':
                     $result = mb_ereg_match( $value, $param, 'iz' ); 
@@ -304,11 +309,12 @@ class Condition
                 if ( $user_id != 0 )
                 {
                     $user_orders = wc_get_orders(array(
-                        'customer_id' => $user_id
+                        'customer_id' => $user_id,
+                        'numberposts' => -1
                     ));
                     foreach ($user_orders as $previous_order) 
                     {
-                        $paramValue .= $order->get_status() . "\t";
+                        $paramValue .= $previous_order->get_status() . "\t";
                     }
                 }
                 Plugin::get()->log( 'Order #' . $order->ID .  ' user_orders_status: ' . $paramValue, self::LOGFILE );         
