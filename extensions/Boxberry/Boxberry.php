@@ -142,7 +142,12 @@ class Boxberry extends Base
 
             foreach ( $results as $order_id => $result )
             {
-                if ( isset( $result['body'] ) )
+                if ( is_wp_error( $result ) )
+                {
+                    $responseStr .= $result->get_error_message();
+                    continue;
+                }
+                elseif ( isset( $result['body'] ) )
                 {
                     $resultObj = json_decode( $result['body'] );
                 }
