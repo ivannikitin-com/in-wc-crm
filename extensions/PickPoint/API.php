@@ -62,7 +62,7 @@ class API
     }
 
     /**
-     * Авторизуется на сервере и возвразщает SessionID
+     * Авторизуется на сервере и возвращает SessionID
      */
     private function getSessionId()
     {
@@ -117,7 +117,7 @@ class API
 
     /**
      * Отправляет данные на сервер
-     * @param midex $orders Массив заказов
+     * @param mixed $orders Массив заказов
      */
     public function send( $orders )
     {
@@ -159,7 +159,7 @@ class API
             throw new SendException( __( 'Ошибка отправки данных: ', IN_WC_CRM ) . $response->get_error_message() );
         }
         
-        // Расшифровавываем ответ
+        // Расшифровываем ответ
         $responseObj = json_decode( $response['body'] );
         if ( ! $responseObj )
         {        
@@ -169,12 +169,60 @@ class API
         Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
         Plugin::get()->log( $responseObj, self::LOGFILE );        
 
-        // Вовзращаем результат
+        // Возвращаем результат
         return array(
             'created'  => $responseObj->CreatedSendings,
             'rejected' => $responseObj->RejectedSendings
         );
     }
+
+    // Проверяет статусы отправлений
+    public function getStates()
+    {
+        if ( empty( $this->sessionId) ) 
+        {
+            $this->sessionId = $this->getSessionId();
+        }
+
+        // Данные для отправки
+        $sendData = json_encode( array(
+            'SessionId' => $this->sessionId,
+        ));
+
+        Plugin::get()->log( __( 'Данные для отправки', IN_WC_CRM ), self::LOGFILE );
+        Plugin::get()->log( $sendData, self::LOGFILE );
+
+        // Формируем запрос
+        $args = array(
+            'timeout'   => 60,
+            'blocking'  => true,   
+            'headers'   => array('Content-Type' => 'application/json'),
+            'body'      => $sendData,
+        );
+
+        // Отправляем запрос
+        $response = wp_remote_get( $this->url . '/getstates', $args );
+
+        // проверка ошибки
+        if ( is_wp_error( $response ) ) 
+        {
+            throw new SendException( __( 'Ошибка отправки данных: ', IN_WC_CRM ) . $response->get_error_message() );
+        }
+        
+        // Расшифровываем ответ
+        $responseObj = json_decode( $response['body'] );
+        if ( ! $responseObj )
+        {        
+            throw new EmptyResponseException( __( 'Пустой ответ сервера!', IN_WC_CRM ) );
+        }
+
+        Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
+        Plugin::get()->log( $responseObj, self::LOGFILE );        
+
+        // Возвращаем результат
+        return  $responseObj;  
+    }
+
 
     /**
      * Создает объект отправления

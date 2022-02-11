@@ -27,6 +27,8 @@ class PickPoint extends Base
         add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 31 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_pickpoint_send_orders', array( $this, 'sendOrders' ) );
+
+        add_filter( 'inwccrm_delivery_check', array( $this, 'checkOrderStatus' ) );        
     }
 
     /**
@@ -214,4 +216,47 @@ class PickPoint extends Base
             wp_die();  
         }
     }
+
+
+    /**
+     * Проверка статусов заказа
+     * @param string    $previousResult     Результат, который вернули предыдущие фильтры 
+     * @return string                       Возвращает строку с результатами операции 
+     */
+    public function checkOrderStatus( $previousResult )
+    {
+        $resultStr = $previousResult . PHP_EOL . 'PickPoint: ' . PHP_EOL;
+        
+        // Запрос статусов
+        try
+        {
+            // Подключение
+            $api = new API(
+                $this->getParam( 'pickpoint-api-endpoint', '' ),         // URL
+                $this->getParam( 'pickpoint-api-login', '' ),            // Login
+                $this->getParam( 'pickpoint-api-password', '' ),         // Password
+                $this->getParam( 'pickpoint-api-ikn', '' ),              // IKN
+                $this->getParam( 'pickpoint-shopManagerName', '' ),      // Менеджер
+                $this->getParam( 'pickpoint-shopOrganization', '' ),     // Менеджер
+                $this->getParam( 'pickpoint-shopPhone', '' ),            // Телефон
+                $this->getParam( 'pickpoint-shopComment', '' )           // Комментарий
+            );
+
+            // Передача заказов
+            $result = $api->getStates();    // Возвращает массив статусов
+            $resultStr .= json_encode($result); 
+
+            // Расшифровка результата
+
+        }
+        catch (Exception $e) 
+        {
+            // Возникли ошибки
+            $resultStr .=  __( 'Ошибка', IN_WC_CRM ) . ': ' . $e->getMessage();
+        }
+
+        return $resultStr;
+    }  
+
+
 }
