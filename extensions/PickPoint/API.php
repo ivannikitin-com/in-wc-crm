@@ -258,7 +258,7 @@ class API
                 'Quantity'      => $item->get_quantity(),
                 'Vat'           => null,
                 'Description'   => '',
-                'Upi'           => $product->get_id()
+                'Upi'           => '' //$product->get_id()
             );
             array_push( $SubEncloses, $SubEnclose );
         }
