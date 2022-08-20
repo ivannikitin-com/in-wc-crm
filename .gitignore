@@ -1,4 +1,5 @@
 *.log
+*.env
 *.sql
 *.code-workspace
 .vscode
