@@ -273,7 +273,7 @@ class OrderList extends BaseAdminPage
             if ( ! empty( $shippingMehods ) )
             {
                 // Фильтруем по методам доставки
-                if ( ! in_array( $order->get_shipping_method(), $shippingMehods ))
+                if ( ! in_array( strtolower($order->get_shipping_method()), array_map('strtolower', $shippingMehods )))
                     continue;
             }
 
