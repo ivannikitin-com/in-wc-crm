@@ -6,6 +6,7 @@ namespace IN_WC_CRM\Extensions\FivePost;
 use \Exception as Exception;
 
 // Не указаны данные
+class GetTokenException extends Exception {}
 class NoСredentialsException extends Exception {}
 //class SendException extends Exception {}
 class EmptyResponseException extends Exception {}

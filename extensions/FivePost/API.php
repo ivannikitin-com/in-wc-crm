@@ -20,8 +20,15 @@ class API
 
     /**
      * Точка отправки запроса
+     * URL = 'https://api.FivePost.ru/json.php';
+     * API Партнера 5post для тестирования интеграции доступно по адресу:
+     * {среда}/api/{Версия API}/{Endpoint},
+     *  где {среда}:
+     *      - https://api-preprod-omni.x5.ru – для тестовой среды; 
+     *      - https://api-omni.x5.ru – для продуктивной среды.
+
      */
-    const URL = 'https://api.FivePost.ru/json.php';
+    const URL = 'https://api-preprod-omni.x5.ru/';
     
 
     /**
@@ -32,13 +39,40 @@ class API
 
     /**
      * Конструктор
-     * @param string    $token            API Токен
+     * @param string    $apiKey            API ключ
 
      */
-    public function __construct( $token )
+    public function __construct( $apiKey )
     {
-        $this->token = $token;
+        $this->token = $this->getToken( $apiKey );
     }
+
+    /**
+     * Получает Bearer токен
+     */
+    private function getToken( $apiKey ){
+        Plugin::get()->log( 'Получение токена для API Key: ' . $apiKey, self::LOGFILE ); 
+        
+        // Запрос токена
+        $url = self::URL . 'jwt-generate-claims/rs256/1?apikey=' . $apiKey;
+        $args = array(
+            'body' => 'subject=OpenAPI&audience=A122019!'
+        );
+        $response = wp_remote_post( $url, $args );        
+
+        // Проверка результата
+        if ( is_wp_error( $response ) ) {
+            throw new GetTokenException( 
+                __( 'Ошибка получения токена FivePost' , IN_WC_CRM ) . 
+                ': ' . $response->get_error_message()
+            );
+        }
+
+        // Ответ получен
+        $responseObj = json_decode( $response );
+        return $responseObj->jwt;
+    }
+
 
     /**
      * Возвращает структуру заказа для отправки
