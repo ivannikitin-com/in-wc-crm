@@ -129,17 +129,65 @@ class API
         if ( $weghtTotal < 5 ) $weghtTotal = 5;
         if ( $weghtTotal > 31000 ) $weghtTotal = 31000;
 
-        // они просят передавать 9001122333 без +7 или +8
-        // а для казахстана и беларуси 12 последних цифр
-        $phone = preg_replace( '/[\s\-\(\)\.]/', '', $order->get_billing_phone() );
-        if ( strpos( $phone, '+7') == 0 ) $phone = str_replace( '+7', '', $phone );
-        $phone = str_replace( '+', '', $phone );
-
         // Дефолтовое значение delivery_date
-        $delivery_date = date( 'Y-m-d', time() + DAY_IN_SECONDS );
+        $delivery_date = date( 'c', time() + DAY_IN_SECONDS );
 
         // Формирование и возврат заказа
         return array(
+            'senderOrderId'   => apply_filters( 'inwccrm_fivepost_senderorderid', $order->get_order_number(), $order ),
+            'clientOrderId'   => apply_filters( 'inwccrm_fivepost_clientorderid', $order->get_order_number(), $order ),
+            'brandName'       => apply_filters( 'inwccrm_fivepost_brandname', get_bloginfo( 'name' ), $order ),
+            'clientName'      => apply_filters( 'inwccrm_fivepost_clientname', 
+                ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
+                    $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
+                    $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(),
+                $order ),
+            'clientPhone'      => apply_filters( 'inwccrm_fivepost_clientphone', $order->get_billing_phone(), $order ),
+            'clientEmail'      => apply_filters( 'inwccrm_fivepost_clientemail', $order->get_billing_email(), $order ),
+            'senderLocation'   => apply_filters( 'inwccrm_fivepost_senderlocation', '', $order ), // TODO senderLocation
+            'returnLocation'   => apply_filters( 'inwccrm_fivepost_returnlocation', '', $order ), // TODO returnLocation
+            'receiverLocation' => apply_filters( 'inwccrm_fivepost_receiverlocation', '', $order ), // TODO receiverLocation
+            'undeliverableOption' => apply_filters( 'inwccrm_fivepost_undeliverableoption', 'RETURN', $order ),
+            'senderCreateDate' => apply_filters( 'inwccrm_fivepost_sendercreatedate', $order->get_date_created()->__toString(), $order ),
+            'shipmentDate' => apply_filters( 'inwccrm_fivepost_shipmentdate', date( 'c', time() + 2 * DAY_IN_SECONDS ), $order ),
+            'plannedReceiveDate' => apply_filters( 'inwccrm_fivepost_plannedreceivedate', date( 'c', time() + DAY_IN_SECONDS ), $order ),
+            // rateTypeCode
+            // vendor
+            // name
+            // inn
+            // phone
+            'cost' => apply_filters( 'inwccrm_fivepost_cost', array(
+                'deliveryCost' => apply_filters( 'inwccrm_fivepost_deliverycost', $order->get_shipping_total(), $order ),
+                'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
+                'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
+                // prepaymentSum
+                'paymentValue' => apply_filters( 'inwccrm_fivepost_paymentvalue', 
+                    ( empty( $order->get_transaction_id() ) ) ? $order->get_total() : 0, $order ),
+                'paymentCurrency' => apply_filters( 'inwccrm_fivepost_paymentcurrency', 'RUB', $order ),
+                // paymentType
+                'price' => apply_filters( 'inwccrm_fivepost_paymentprice', $summTotal, $order ),       
+                'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ),                
+            ) $order ),
+            // Пока делаем заказ одноместным!
+            'cargoes' => apply_filters( 'inwccrm_fivepost_cargoes', array(
+                // Объект грузоместа
+                array(
+                    'barcodes' => apply_filters( 'inwccrm_fivepost_barcodes', array(), $order )
+                    'senderCargoId' => apply_filters( 'inwccrm_fivepost_sendercargoid', $order->get_order_number() . '-1', $order ),
+                    'height': apply_filters( 'inwccrm_fivepost_height', 0, $order ),
+                    'length': apply_filters( 'inwccrm_fivepost_length', 0, $order ),
+                    'width': apply_filters( 'inwccrm_fivepost_width', 0, $order ),
+                    'weight': apply_filters( 'inwccrm_fivepost_weight', $weghtTotal, $order ),
+                    'price' => apply_filters( 'inwccrm_fivepost_price', $summTotal, $order ),
+                    'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ), 
+                    'productValues' => $items
+                    // ...
+                )
+            ), $order )
+
+
+
+
             'updateByTrack' => apply_filters( 'inwccrm_FivePost_updatebytrack', '', $order ),
             'order_id'      => apply_filters( 'inwccrm_FivePost_order_id', $order->get_order_number(), $order ),
             'PalletNumber'  => apply_filters( 'inwccrm_FivePost_palletnumber', '', $order ),
@@ -179,7 +227,7 @@ class API
                     // Дата курьерской доставки (формат ГГГГ-ММ-ДД). 
                     // Может принимать значения +1 +5 дней от текущей даты.
                     // Значение по умолчанию - текущая дата + 1 день.
-                    'delivery_date' => apply_filters( 'inwccrm_FivePost_kurdost_delivery_date', $delivery_date, $order ),
+
                     // Время курьерской доставки ОТ (формат чч:мм)
                     'timesfrom1' => apply_filters( 'inwccrm_FivePost_kurdost_timesfrom1', '', $order ),
                     // Время курьерской доставки ДО (формат чч:мм)
@@ -279,6 +327,7 @@ class API
         {
             try
             {
+                /*
                 Plugin::get()->log( __( 'Способ доставки', IN_WC_CRM ) . 
                     ': ' . $order->get_shipping_method(), self::LOGFILE );
                     
@@ -287,6 +336,7 @@ class API
 
                 Plugin::get()->log( __( 'Заказ', IN_WC_CRM ) . 
                     ': ' . var_export($order, true), self::LOGFILE );
+                */
 
                 // Данные заказа для передачи
                 $data = $this->getOrderData( $order );
@@ -295,11 +345,14 @@ class API
 
                 // Передача заказа
                 $args = array(
-                    'body' => array( 
-                        'token' => $this->token, 
-                        'method' => 'ParselCreate',
-                        'sdata' => json_encode($data)
-                    )
+                    'headers' => array(
+                        'Authorization' => $this->token,
+                        'Content-type' => 'application/json',
+                    ),                    
+                    'body' => array(
+                        'partnerOrders' => json_encode($data)
+                    ) 
+                    
                 );
                 $response = wp_remote_post( self::URL, $args );
 
