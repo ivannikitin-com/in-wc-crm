@@ -17,7 +17,6 @@ class API
      */
     const LOGFILE = 'FivePost-rest.log';
 
-
     /**
      * Точка отправки запроса
      * URL = 'https://api.FivePost.ru/json.php';
@@ -28,7 +27,8 @@ class API
      *      - https://api-omni.x5.ru – для продуктивной среды.
 
      */
-    const URL = 'https://api-preprod-omni.x5.ru/';
+    //const URL = 'https://api-preprod-omni.x5.ru/';
+    const URL = 'https://api-omni.x5.ru/';
     
 
     /**
@@ -69,7 +69,16 @@ class API
         }
 
         // Ответ получен
-        $responseObj = json_decode( $response );
+        if ( !$response || !isset( $response['body'] ) ) {
+            Plugin::get()->log( 'Ответ сервера: ' . var_export($response, true), self::LOGFILE );
+            throw new GetTokenException( 
+                __( 'Токен FivePost не получен' , IN_WC_CRM ) . 
+                ': ' . var_export($response, true)
+            );
+        };
+
+        $responseObj = json_decode( $response['body'] );
+        Plugin::get()->log( 'Токен получен: ' . $responseObj->jwt, self::LOGFILE );
         return $responseObj->jwt;
     }
 
@@ -253,7 +262,7 @@ class API
         // Проверим данные для входа
         if ( empty( $this->token ) )
         {
-            throw new NoСredentialsException( __( 'Не указан API токен', IN_WC_CRM ) );
+            throw new NoСredentialsException( __( 'Не получен API токен', IN_WC_CRM ) );
         }
 
         // Соберем массив заказов

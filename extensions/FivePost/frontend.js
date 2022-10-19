@@ -21,7 +21,7 @@ jQuery(function($){
 
         // Передаем данные на сервер
         var ajaxRequest = {
-            action: 'FivePost_send_orders',
+            action: 'fivepost_send_orders',
             ids: selectedIds.join(',')
         };
 		$.post(ajaxurl, ajaxRequest)
@@ -30,7 +30,7 @@ jQuery(function($){
            		$('#loadBanner').hide('fast'); 				
 			})
 			.fail(function(xhr, status, error){
-            	alert( status + ': ' + error + ': ' + xhr.responseText );
+            	alert(status + ': ' + error + ': ' + xhr.responseText );
            		$('#loadBanner').hide('fast'); 				
 			});             
     });
