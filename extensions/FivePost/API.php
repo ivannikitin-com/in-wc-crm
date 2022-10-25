@@ -85,7 +85,6 @@ class API
 
     /**
      * Возвращает структуру заказа для отправки
-     * https://documenter.getpostman.com/view/7354859/SzezaWVs?version=latest#190f1627-c943-4b26-a3ac-58db8e7355e0
      * @param WC_Order  $order  Заказ WooCommerce
      * @return mixed
      */
@@ -108,18 +107,41 @@ class API
 
             //  Массив товарных вложений
             $items[] = array(
-                // Артикул товара
-                'id'        => apply_filters( 'inwccrm_FivePost_orderitem_id', $sku, $order, $orderItem ),
                 // Наименование товара
-                'name'      => apply_filters( 'inwccrm_FivePost_orderitem_name', $product->get_name(), $order, $orderItem ),
-                // Единица измерения
-                'UnitName'  => apply_filters( 'inwccrm_FivePost_orderitem_unitname', 'шт', $orderItemId, $order, $orderItem ),
-                // Процент НДС (число от 0 до 20)
-                'nds'       => apply_filters( 'inwccrm_FivePost_orderitem_nds', 0, $orderItemId, $order, $orderItem ),
-                // Цена за единицу товара
-                'price'     => apply_filters( 'inwccrm_FivePost_orderitem_price', $itemPrice, $order, $orderItem ),
+                'name'      => apply_filters( 'inwccrm_fivePost_orderitem_name', $product->get_name(), $order, $orderItem ),                
                 // Количество единиц товара
-                'quantity'  => apply_filters( 'inwccrm_FivePost_orderitem_count', $itemQuantity, $order, $orderItem )
+                'value'     => apply_filters( 'inwccrm_fivePost_orderitem_value', $itemQuantity, $order, $orderItem ),
+                // Цена за единицу товара
+                'price'     => apply_filters( 'inwccrm_fivePost_orderitem_price', $itemPrice, $order, $orderItem ),
+                // Валюта цены
+                'currency'  => apply_filters( 'inwccrm_fivePost_orderitem_currency', 'RUB', $order, $orderItem ),
+                // Ставка НДС в %. Возможные значения: 0 (=без НДС), 10, 20
+                'vat'       => apply_filters( 'inwccrm_fivePost_orderitem_vat', 0, $order, $orderItem ),
+            /*    
+                // Код маркировки товара согласно Честному Знаку.  Принимаемый формат значений только base64
+                'upiCode'   => apply_filters( 'inwccrm_fivepost_orderitem_upicode', '', $order, $orderItem ),
+                // Артикул товара
+                'vendorCode' => apply_filters( 'inwccrm_fivepost_orderitem_vendorcode', $sku, $order, $orderItem ),
+                // Страна производства
+                'originCountry' => apply_filters( 'inwccrm_fivepost_orderitem_origincountry', 'Russia', $order, $orderItem ),
+                // Штрихкод товара (штрихкод, нанесенный на товар производителем)
+                'barcode'   => apply_filters( 'inwccrm_fivepost_orderitem_barcode', '', $order, $orderItem ),
+                // Номер Грузовой Таможенной Декларации.
+                'codeGTD'   => apply_filters( 'inwccrm_fivepost_orderitem_codegtd', '', $order, $orderItem ),
+                // Код Товарной Номенклатуры Внешне Экономической Деятельности
+                'codeTNVED' => apply_filters( 'inwccrm_fivepost_orderitem_codetnved', '', $order, $orderItem ),
+                // Данные о поставщике товара
+                'vendor' => apply_filters( 'inwccrm_fivepost_orderitem_vendor', '', $order, $orderItem ),
+                // Данные о поставщике товара
+                'vendor' => apply_filters( 'inwccrm_fivepost_orderitem_vendor', array(
+                    // Полное наименование юридического лица поставщика отправителя.
+                    'name' => apply_filters( 'inwccrm_fivepost_orderitem_vendor_name', '', $order, $orderItem ),
+                    // ИНН поставщика. При заполнении параметра данные о поставщике будут применяться для текущей товарной позиции
+                    'inn' => apply_filters( 'inwccrm_fivepost_orderitem_vendor_inn', '', $order, $orderItem ),
+                    // Полное наименование юридического лица поставщика отправителя.
+                    'phone' => apply_filters( 'inwccrm_fivepost_orderitem_vendor_phone', '', $order, $orderItem )
+                ), $order, $orderItem ),
+            */
             );
         }
 
@@ -167,134 +189,22 @@ class API
                 // paymentType
                 'price' => apply_filters( 'inwccrm_fivepost_paymentprice', $summTotal, $order ),       
                 'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ),                
-            ) $order ),
+            ), $order ),
             // Пока делаем заказ одноместным!
             'cargoes' => apply_filters( 'inwccrm_fivepost_cargoes', array(
                 // Объект грузоместа
                 array(
-                    'barcodes' => apply_filters( 'inwccrm_fivepost_barcodes', array(), $order )
+                    'barcodes' => apply_filters( 'inwccrm_fivepost_barcodes', array(), $order ),
                     'senderCargoId' => apply_filters( 'inwccrm_fivepost_sendercargoid', $order->get_order_number() . '-1', $order ),
-                    'height': apply_filters( 'inwccrm_fivepost_height', 0, $order ),
-                    'length': apply_filters( 'inwccrm_fivepost_length', 0, $order ),
-                    'width': apply_filters( 'inwccrm_fivepost_width', 0, $order ),
-                    'weight': apply_filters( 'inwccrm_fivepost_weight', $weghtTotal, $order ),
-                    'price' => apply_filters( 'inwccrm_fivepost_price', $summTotal, $order ),
+                    'height'    => apply_filters( 'inwccrm_fivepost_height', 0, $order ),
+                    'length'    => apply_filters( 'inwccrm_fivepost_length', 0, $order ),
+                    'width'     => apply_filters( 'inwccrm_fivepost_width', 0, $order ),
+                    'weight'    => apply_filters( 'inwccrm_fivepost_weight', $weghtTotal, $order ),
+                    'price'     => apply_filters( 'inwccrm_fivepost_price', $summTotal, $order ),
                     'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ), 
                     'productValues' => $items
-                    // ...
                 )
             ), $order )
-
-
-
-
-            'updateByTrack' => apply_filters( 'inwccrm_FivePost_updatebytrack', '', $order ),
-            'order_id'      => apply_filters( 'inwccrm_FivePost_order_id', $order->get_order_number(), $order ),
-            'PalletNumber'  => apply_filters( 'inwccrm_FivePost_palletnumber', '', $order ),
-            'barcode'       => apply_filters( 'inwccrm_FivePost_barcode', '', $order ),
-            // Объявленная стоимость посылки БЕЗ доставки
-            'price'         => apply_filters( 'inwccrm_FivePost_price', $summTotal, $order ),
-            // Сумма к оплате (сумма, которую необходимо взять с получателя).
-            // Для полностью предоплаченного заказа указывать 0.
-            'payment_sum'   => apply_filters( 'inwccrm_FivePost_payment_sum', $order->get_total(), $order ), 
-            // Стоимость доставки объявленная получателю 
-            'delivery_sum'  => apply_filters( 'inwccrm_FivePost_delivery_sum', $order->get_shipping_total(), $order ),
-            // Вид выдачи заказа, возможные значения:
-            //  0 - выдача без вскрытия, 
-            //  1 - выдача со вскрытием и проверкой комплектности,
-            //  2 - выдача части вложения.
-            'issue'         => apply_filters( 'inwccrm_FivePost_issue', '', $order ),
-            // Вид доставки:
-            //  1 - Доставка до пункта выдачи (ПВЗ, «Экспорт из РФ»)
-            //  2 - Курьерская доставка (КД)
-            //  3 - доставка Почтой России (ПР)
-            'vid'           => apply_filters( 'inwccrm_FivePost_vid', 3, $order ),
-
-            // 	Блок с информацией о курьерской доставке и доставке Почтой России
-            'kurdost'  => apply_filters( 'inwccrm_FivePost_kurdost', array(
-                    'index'     => apply_filters( 'inwccrm_FivePost_kurdost_index', ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode(), $order ),
-                    'citi'      => apply_filters( 'inwccrm_FivePost_kurdost_citi', ( ! empty( $order->get_shipping_city() ) ) ? $order->get_shipping_city() : $order->get_billing_city(), $order ),
-                    'addressp'  => apply_filters( 'inwccrm_FivePost_kurdost_addressp', 
-                        ( ! empty( $order->get_shipping_address_1() ) ) ? 
-                        $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
-                        $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
-                    // Следующие значения передаются только для Курьерской доставки по направлениям: 
-                    //      Москва - Москва
-                    //      Москва - Санкт-Петербург
-                    //      Санкт-Петербург - Москва
-                    //      Санкт-Петербург - Санкт-Петербург
-                    //
-                    // Дата курьерской доставки (формат ГГГГ-ММ-ДД). 
-                    // Может принимать значения +1 +5 дней от текущей даты.
-                    // Значение по умолчанию - текущая дата + 1 день.
-
-                    // Время курьерской доставки ОТ (формат чч:мм)
-                    'timesfrom1' => apply_filters( 'inwccrm_FivePost_kurdost_timesfrom1', '', $order ),
-                    // Время курьерской доставки ДО (формат чч:мм)
-                    'timesto1'   => apply_filters( 'inwccrm_FivePost_kurdost_timesto1', '', $order ),
-                    // Альтернативное время, от
-                    'timesfrom2' => apply_filters( 'inwccrm_FivePost_kurdost_timesfrom2', '', $order ),
-                    // Альтернативное время, до
-                    'timesto2'   => apply_filters( 'inwccrm_FivePost_kurdost_timesto2', '', $order ),
-                    // Время доставки текстовый формат  (не используется)
-                    'timep'      => apply_filters( 'inwccrm_FivePost_kurdost_timep', '', $order ),
-                    // Комментарий по доставке (не используется)
-                    'comentk'    => apply_filters( 'inwccrm_FivePost_kurdost_comentk', '', $order ),
-                    // Тип упаковки: 
-                    //  1 - упаковка ИМ, 
-                    //  2 - упаковка FivePost
-                    'packing_type'  => apply_filters( 'inwccrm_FivePost_packing_type', 1, $order ),
-                    // Строгая упаковка: 
-                    //  1 - изменение упаковки в процессе транспортировки запрещено, 
-                    //  0 - разрешено
-                    'packing_strict'=> apply_filters( 'inwccrm_FivePost_packing_strict', 1, $order ),                
-                ), $order), // inwccrm_FivePost_kurdost
-
-            // Блок с информацией о пункте приема и пункте выдачи отправления
-            'shop'  => array(
-                // Код пункта выдачи 
-                'name'   => apply_filters( 'inwccrm_FivePost_shop_name',  '', $order ),
-                // Код пункта поступления
-                'name1'  => apply_filters( 'inwccrm_FivePost_shop_name1', '010', $order ),
-            ),
-            
-            // Блок с информацией о получателе отправления
-            'customer' => array(
-                'fio'    => apply_filters( 'inwccrm_FivePost_customer_fio', 
-                    ( ! empty( $order->get_shipping_last_name() ) && ! empty( $order->get_shipping_first_name() ) ) ?
-                    $order->get_shipping_last_name() . ' '  . $order->get_shipping_first_name() :
-                    $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(),
-                    $order ),
-                'phone'   => apply_filters( 'inwccrm_FivePost_customer_phone', $phone, $order ),
-                'phone2'  => apply_filters( 'inwccrm_FivePost_customer_phone2', '', $order ),
-                'email'   => apply_filters( 'inwccrm_FivePost_customer_email', $order->get_billing_email(), $order ),
-                'name'    => apply_filters( 'inwccrm_FivePost_customer_name', $order->get_billing_last_name() . ' '  . $order->get_billing_first_name(), $order ),
-                'address' => apply_filters( 'inwccrm_FivePost_customer_address', 
-                ( ! empty( $order->get_shipping_address_1() ) ) ? 
-                        $order->get_shipping_address_1() . ' ' .  $order->get_shipping_address_2() : 
-                        $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
-                // $order->get_billing_address_1() . ' ' . $order->get_billing_address_2(), $order ),
-                'inn'     => apply_filters( 'inwccrm_FivePost_customer_inn', '', $order ),
-                'kpp'     => apply_filters( 'inwccrm_FivePost_customer_kpp', '', $order ),
-                'r_s'     => apply_filters( 'inwccrm_FivePost_customer_r_s', '', $order ),
-                'bank'    => apply_filters( 'inwccrm_FivePost_customer_bank', '', $order ),
-                'kor_s'   => apply_filters( 'inwccrm_FivePost_customer_kor_s', '', $order ),
-                'bik'     => apply_filters( 'inwccrm_FivePost_customer_bik', '', $order ),              
-            ),
-
-            //  Массив товарных вложений
-            'items' => $items,
-
-            // Примечание к заказу.
-            'notice' => apply_filters( 'inwccrm_FivePost_notice', $order->get_customer_note(), $order ),
-
-            'weights' => array(
-                'weight'   => apply_filters( 'inwccrm_FivePost_weights_weight', $weghtTotal, $order ), //В параметр weight нужно передавать вес в граммах, т.е. целое число,
-                'x'        => apply_filters( 'inwccrm_FivePost_weights_x', 1, $order ),
-                'y'        => apply_filters( 'inwccrm_FivePost_weights_y', 1, $order ),
-                'z'        => apply_filters( 'inwccrm_FivePost_weights_z', 1, $order ),
-                'barcode'  => apply_filters( 'inwccrm_FivePost_weights_barcode', '', $order ),
-            ),
         );
     }
 
@@ -327,17 +237,6 @@ class API
         {
             try
             {
-                /*
-                Plugin::get()->log( __( 'Способ доставки', IN_WC_CRM ) . 
-                    ': ' . $order->get_shipping_method(), self::LOGFILE );
-                    
-                Plugin::get()->log( __( 'Адрес доставки', IN_WC_CRM ) . 
-                    ': ' . $order->get_shipping_address_1(), self::LOGFILE );
-
-                Plugin::get()->log( __( 'Заказ', IN_WC_CRM ) . 
-                    ': ' . var_export($order, true), self::LOGFILE );
-                */
-
                 // Данные заказа для передачи
                 $data = $this->getOrderData( $order );
                 Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
