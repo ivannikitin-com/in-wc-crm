@@ -139,17 +139,23 @@ class FivePost extends Base
             $results = $api->send( $orders );
 
             $responseStr = '';
-
             foreach ( $results as $order_id => $result )
             {
+
+                $errorCode = ( isset( $result['response'] ) && isset( $result['response']['code'] ) ) ? $result['response']['code'] : 0 ;
+                $resultObj = ( isset( $result['body'] ) ) ? json_decode( $result['body'] ) : array( 'message' => var_export($result, true) );
+
                 if ( is_wp_error( $result ) )
                 {
-                    $responseStr .= $result->get_error_message();
+                    $responseStr .= $result->get_error_message() . PHP_EOL;
                     continue;
                 }
-                elseif ( isset( $result['body'] ) )
+                elseif ( $errorCode != '200' )
                 {
-                    $resultObj = json_decode( $result['body'] );
+                    $message = ( isset( $resultObj->message ) ) ? $resultObj->message : $result['body'];
+                    $responseStr .= __( 'Ошибочный статус FivePost для заказа', IN_WC_CRM ) . ' ' . $order_id . ' ' .
+                        $result['response']['code'] . ': ' . $message  . PHP_EOL;
+                        continue;
                 }
                 else 
                 {
@@ -160,14 +166,7 @@ class FivePost extends Base
 
                 // Сообщение
                 $resultMessage = __( 'Заказ', IN_WC_CRM ) . ' #' . $order_id . ': ';
-                $resultMessage .= ( isset( $resultObj->err ) ) ? $resultObj->err : 'создан';
-
-                // Если в ответе присуствует код 
-                if ( isset( $resultObj->track ) )
-                {
-                    $resultMessage .= '. ' . __( 'Трек', IN_WC_CRM ) . ': ' . $resultObj->track;
-                } 
-                    
+                $resultMessage .= ( isset( $resultObj->err ) ) ? $resultObj->err : 'создан';                    
 
                 // Результат в строку результата
                 $responseStr .= ' ' . $resultMessage . PHP_EOL . PHP_EOL;                   
@@ -182,7 +181,7 @@ class FivePost extends Base
                 // Ошибки на FivePost
                 if ( isset( $resultObj->err ) )
                 {
-                    continue;
+                    
                 }
 
                 // Установим новый статус

@@ -29,12 +29,12 @@ class API
      */
     //const URL = 'https://api-preprod-omni.x5.ru/';
     const URL = 'https://api-omni.x5.ru/';
-    
+    const METHOD_ORDERS = 'api/v3/orders';
 
     /**
-     * Параметры удаленного сервера, подключения и других параметров
+     * Кэш ключа
      */
-    private $token;             // API Токен
+    const TOKEN_CACHE = 'in-wc-crm_fivepost_token';
 
 
     /**
@@ -44,7 +44,11 @@ class API
      */
     public function __construct( $apiKey )
     {
-        $this->token = $this->getToken( $apiKey );
+        $this->token = get_transient( self::TOKEN_CACHE );
+        if ( false === $this->token ) {
+            $this->token = $this->getToken( $apiKey );
+            set_transient( self::TOKEN_CACHE, $this->token, 30 * MINUTE_IN_SECONDS );
+        }
     }
 
     /**
@@ -179,15 +183,15 @@ class API
             // inn
             // phone
             'cost' => apply_filters( 'inwccrm_fivepost_cost', array(
-                'deliveryCost' => apply_filters( 'inwccrm_fivepost_deliverycost', $order->get_shipping_total(), $order ),
+                'deliveryCost' => apply_filters( 'inwccrm_fivepost_deliverycost', floatval( $order->get_shipping_total() ), $order ),
                 'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
                 'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
                 // prepaymentSum
                 'paymentValue' => apply_filters( 'inwccrm_fivepost_paymentvalue', 
-                    ( empty( $order->get_transaction_id() ) ) ? $order->get_total() : 0, $order ),
+                    ( empty( $order->get_transaction_id() ) ) ? floatval( $order->get_total() ) : 0, $order ),
                 'paymentCurrency' => apply_filters( 'inwccrm_fivepost_paymentcurrency', 'RUB', $order ),
                 // paymentType
-                'price' => apply_filters( 'inwccrm_fivepost_paymentprice', $summTotal, $order ),       
+                'price' => apply_filters( 'inwccrm_fivepost_paymentprice', floatval( $summTotal ), $order ),       
                 'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ),                
             ), $order ),
             // Пока делаем заказ одноместным!
@@ -214,8 +218,10 @@ class API
      * @param mixed $orders Массив заказов
      */
     public function send( $orders )
-    {        
-        Plugin::get()->log( __( 'FivePost log: send orders', IN_WC_CRM ) . ': ' . self::URL, self::LOGFILE );
+    {   
+        // URL отправки заказа
+        $url = self::URL . self::METHOD_ORDERS;
+        Plugin::get()->log( __( 'FivePost log: send orders', IN_WC_CRM ) . ': ' . $url, self::LOGFILE );
 
         // Проверим данные для входа
         if ( empty( $this->token ) )
@@ -232,6 +238,8 @@ class API
 
         $responses = array();
 
+
+        // TODO: Переписать передачу заказов одной передачей 
         $orderData = array();
         foreach ( $orders as $order )
         {
@@ -243,17 +251,22 @@ class API
                 Plugin::get()->log( $data, self::LOGFILE ); 
 
                 // Передача заказа
+                $json_data = json_encode( array(
+                    'partnerOrders' => array( $data) 
+                ) );
+
+                Plugin::get()->log( __( 'JSON', IN_WC_CRM ), self::LOGFILE );
+                Plugin::get()->log( $json_data, self::LOGFILE ); 
+
                 $args = array(
                     'headers' => array(
-                        'Authorization' => $this->token,
+                        'Authorization' => 'Bearer ' . $this->token,
                         'Content-type' => 'application/json',
                     ),                    
-                    'body' => array(
-                        'partnerOrders' => json_encode($data)
-                    ) 
+                    'body' => $json_data
                     
                 );
-                $response = wp_remote_post( self::URL, $args );
+                $response = wp_remote_post( $url, $args );
 
                 Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
                 Plugin::get()->log( $response, self::LOGFILE );                   
