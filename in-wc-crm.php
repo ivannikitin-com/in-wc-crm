@@ -3,14 +3,14 @@
 * Plugin Name: IN WooCommerce CRM
 * Plugin URI: https://ivannikitin-com.github.io/in-wc-crm/
 * Description: Простая CRM система для WordPress и WooCommerce
-* Version: 1.7.20210111
+* Version: 1.8.0
 * Author: Иван Никитин и партнеры
 * Author URI: https://ivannikitin.com
 * License:     GPL3
 * License URI: https://www.gnu.org/licenses/gpl-3.0.html
 * Text Domain: in-wc-crm
 * Domain Path: /lang
-* Namspace: IN_WC_CRM
+* Namespace: IN_WC_CRM
 
 Copyright 2018  Ivan Nikitin  (email: ivan.g.nikitin@gmail.com)
 

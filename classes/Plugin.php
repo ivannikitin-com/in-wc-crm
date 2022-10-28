@@ -136,9 +136,10 @@ class Plugin
 	{
 		if ( WP_DEBUG )
 		{
-			if ( !empty( $logfile ) ) $logfile = $this->path . $logfile;
-			error_log( IN_WC_CRM . 'LOG: ' . $logfile );
-			
+			if ( !empty( $logfile ) ) {
+				$logfile = $this->path . $logfile;
+				error_log( IN_WC_CRM . 'LOG: ' . $logfile );
+			}
 			if (is_array($message) || is_object($message)) 
 			{
                 if ( empty( $logfile ) )
