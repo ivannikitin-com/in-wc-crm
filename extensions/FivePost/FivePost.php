@@ -144,45 +144,51 @@ class FivePost extends Base
 
                 $errorCode = ( isset( $result['response'] ) && isset( $result['response']['code'] ) ) ? $result['response']['code'] : 0 ;
                 $resultObj = ( isset( $result['body'] ) ) ? json_decode( $result['body'] ) : array( 'message' => var_export($result, true) );
+                if ( is_array( $resultObj ) ) $resultObj = $resultObj[0];
 
+
+                // Расшифровка результата
                 if ( is_wp_error( $result ) )
                 {
                     $responseStr .= $result->get_error_message() . PHP_EOL;
                     continue;
                 }
-                elseif ( $errorCode != '200' )
+
+                $message = ( isset( $resultObj->message ) ) ? $resultObj->message : $result['body'];
+
+                if ( $errorCode != '200' )
                 {
-                    $message = ( isset( $resultObj->message ) ) ? $resultObj->message : $result['body'];
                     $responseStr .= __( 'Ошибочный статус FivePost для заказа', IN_WC_CRM ) . ' ' . $order_id . ' ' .
                         $result['response']['code'] . ': ' . $message  . PHP_EOL;
                         continue;
                 }
-                else 
+
+                if ( isset( $resultObj->errors ) )
                 {
-                    $responseStr .= __( 'Непредвиденный ответ FivePost на заказ', IN_WC_CRM ) . ' ' . $order_id . PHP_EOL . 
-                    var_export($result, true) . PHP_EOL;
-                    continue;
+                    $responseStr .= __( 'Сообщение FivePost', IN_WC_CRM ) . ': ';
+                    foreach ( $resultObj->errors as $error ) {
+                        $responseStr .= $error->message . PHP_EOL;
+                    }
                 }
+
 
                 // Сообщение
                 $resultMessage = __( 'Заказ', IN_WC_CRM ) . ' #' . $order_id . ': ';
-                $resultMessage .= ( isset( $resultObj->err ) ) ? $resultObj->err : 'создан';                    
+                $resultMessage .= ( isset( $resultObj->created ) && true == $resultObj->created  ) ? 'создан' : 'не создан';
 
                 // Результат в строку результата
                 $responseStr .= ' ' . $resultMessage . PHP_EOL . PHP_EOL;                   
+
+                // Заказ не создан, ничего далее не делаем.
+                if (!$resultObj->created) continue;
 
                 $currentOrder = new WC_Order( $order_id );
                 $currentOrder->add_order_note( 
                     __( 'FivePost', IN_WC_CRM ) . ': ' . 
                     __( 'Статус ответа', IN_WC_CRM ) . ': ' . 
-                    $resultMessage
+                    $resultMessage . '. ' .
+                    __( 'ID заказа', IN_WC_CRM ) . ' ' . $resultObj->orderId
                 );
-
-                // Ошибки на FivePost
-                if ( isset( $resultObj->err ) )
-                {
-                    
-                }
 
                 // Установим новый статус
                 $currentStatus = $currentOrder->get_status();

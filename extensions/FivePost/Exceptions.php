@@ -12,3 +12,4 @@ class NoСredentialsException extends Exception {}
 class EmptyResponseException extends Exception {}
 class EmptyOrderIDsException extends Exception {}
 class NoOrdersException extends Exception {}
+class NoRequiredParameter extends Exception {}

@@ -94,13 +94,33 @@ class API
      */
     private function getOrderData( $order )
     {
+        // Проверки обязательных параметров
+
+        // Склад отправителя
+        $senderLocation = 'medknigaservis.ru';  // TODO: Сделать параметр в настройках
+        if ( empty( $senderLocation ) )
+        {
+            throw new NoRequiredParameter( __( 'Не определен параметр senderLocation (склад отправителя)', IN_WC_CRM ) );
+        }        
+
+        // Точка получения
+        preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?:\s|$)/', $order->get_formatted_shipping_address(), $matches);
+        $receiverLocation = ($matches) ? $matches[1] : false ;  
+        Plugin::get()->log( __( 'FivePost Адрес доставки ', IN_WC_CRM ) . ': ' . $order->get_formatted_shipping_address(), self::LOGFILE );
+        Plugin::get()->log( __( 'FivePost Точка получения ', IN_WC_CRM ) . ': ' . var_export( $matches, true ), self::LOGFILE );
+        if ( empty( $receiverLocation ) )
+        {
+            throw new NoRequiredParameter( __( 'Не определен параметр receiverLocation (точка получения)', IN_WC_CRM ) );
+        } 
+
         // Элементы заказа
         $items = array();
         $summTotal = 0;
         $weghtTotal = 0;    
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
-            $product = $orderItem->get_product();
+            if ( ! $product = $orderItem->get_product() ) continue; // Продукт на предзаказе!
+            //Plugin::get()->log( __( 'FivePost Продукт ', IN_WC_CRM ) . ': ' . var_export( $orderItem, true ), self::LOGFILE );
             $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
             $itemTotalPrice = $orderItem->get_total();
@@ -149,6 +169,12 @@ class API
             );
         }
 
+        // Проверка массива $items
+        if (0 == count( $items) ) 
+        {
+            throw new NoRequiredParameter( __( 'В заказе нет товаров для отправки в FivePost', IN_WC_CRM ) );
+        } 
+
         // В параметр weight нужно передавать вес в граммах, т.е. целое число
         $weghtTotal = intval( $weghtTotal * 1000 );
         //  вес первого или единственного тарного места, в граммах. Минимальное значение 5 г, максимальное – 31000 г.
@@ -170,9 +196,9 @@ class API
                 $order ),
             'clientPhone'      => apply_filters( 'inwccrm_fivepost_clientphone', $order->get_billing_phone(), $order ),
             'clientEmail'      => apply_filters( 'inwccrm_fivepost_clientemail', $order->get_billing_email(), $order ),
-            'senderLocation'   => apply_filters( 'inwccrm_fivepost_senderlocation', '', $order ), // TODO senderLocation
-            'returnLocation'   => apply_filters( 'inwccrm_fivepost_returnlocation', '', $order ), // TODO returnLocation
-            'receiverLocation' => apply_filters( 'inwccrm_fivepost_receiverlocation', '', $order ), // TODO receiverLocation
+            'senderLocation'   => apply_filters( 'inwccrm_fivepost_senderlocation', $senderLocation, $order ), // TODO senderLocation
+            'returnLocation'   => apply_filters( 'inwccrm_fivepost_returnlocation', $senderLocation, $order ), // TODO returnLocation
+            'receiverLocation' => apply_filters( 'inwccrm_fivepost_receiverlocation', $receiverLocation, $order ), // TODO receiverLocation
             'undeliverableOption' => apply_filters( 'inwccrm_fivepost_undeliverableoption', 'RETURN', $order ),
             'senderCreateDate' => apply_filters( 'inwccrm_fivepost_sendercreatedate', $order->get_date_created()->__toString(), $order ),
             'shipmentDate' => apply_filters( 'inwccrm_fivepost_shipmentdate', date( 'c', time() + 2 * DAY_IN_SECONDS ), $order ),
@@ -200,12 +226,12 @@ class API
                 array(
                     'barcodes' => apply_filters( 'inwccrm_fivepost_barcodes', array(), $order ),
                     'senderCargoId' => apply_filters( 'inwccrm_fivepost_sendercargoid', $order->get_order_number() . '-1', $order ),
-                    'height'    => apply_filters( 'inwccrm_fivepost_height', 0, $order ),
-                    'length'    => apply_filters( 'inwccrm_fivepost_length', 0, $order ),
-                    'width'     => apply_filters( 'inwccrm_fivepost_width', 0, $order ),
-                    'weight'    => apply_filters( 'inwccrm_fivepost_weight', $weghtTotal, $order ),
-                    'price'     => apply_filters( 'inwccrm_fivepost_price', $summTotal, $order ),
-                    'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ), 
+                    'height'    => apply_filters( 'inwccrm_fivepost_cargo_height', 1, $order ),
+                    'length'    => apply_filters( 'inwccrm_fivepost_cargo_length', 1, $order ),
+                    'width'     => apply_filters( 'inwccrm_fivepost_cargo_width', 1, $order ),
+                    'weight'    => apply_filters( 'inwccrm_fivepost_cargo_weight', $weghtTotal, $order ),
+                    'price'     => apply_filters( 'inwccrm_fivepost_cargo_price', $summTotal, $order ),
+                    'currency' => apply_filters( 'inwccrm_fivepost_cargo_currency', 'RUB', $order ), 
                     'productValues' => $items
                 )
             ), $order )
@@ -247,29 +273,24 @@ class API
             {
                 // Данные заказа для передачи
                 $data = $this->getOrderData( $order );
-                Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
-                Plugin::get()->log( $data, self::LOGFILE ); 
+                Plugin::get()->log( __( 'Запрос', IN_WC_CRM ) . ': ' .  var_export( $data, true ), self::LOGFILE );
 
-                // Передача заказа
+                // Формируем JSON
                 $json_data = json_encode( array(
                     'partnerOrders' => array( $data) 
                 ) );
+                Plugin::get()->log( 'JSON: ' . $json_data, self::LOGFILE );
 
-                Plugin::get()->log( __( 'JSON', IN_WC_CRM ), self::LOGFILE );
-                Plugin::get()->log( $json_data, self::LOGFILE ); 
-
-                $args = array(
+                // Передаем заказ
+                $response = wp_remote_post( $url, array(
                     'headers' => array(
                         'Authorization' => 'Bearer ' . $this->token,
                         'Content-type' => 'application/json',
                     ),                    
                     'body' => $json_data
-                    
-                );
-                $response = wp_remote_post( $url, $args );
+                ) );
 
-                Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
-                Plugin::get()->log( $response, self::LOGFILE );                   
+                Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ) . ': ' . var_export($response, true), self::LOGFILE );              
             } 
             catch (Exception $e) // Ловим и логируем ошибки
             {
