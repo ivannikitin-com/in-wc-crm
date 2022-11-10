@@ -210,11 +210,11 @@ class OrderList extends BaseAdminPage
         // Параметры запроса
         $orderStatus = ( isset( $_POST['order_status'] ) ) ? trim( sanitize_text_field( $_POST['order_status'] ) ) : '';
 
-        $shippingMehods = array();
+        $shippingMethods = array();
         $shippingMehodIds = ( isset( $_POST['shipping_method'] ) ) ? (array) $_POST['shipping_method'] : array();
         $allShippingMethods = $this->getShippingMethods();
         foreach ($shippingMehodIds as $shippingId) {
-            $shippingMehods[] = $allShippingMethods[ $shippingId ];
+            $shippingMethods[] = $allShippingMethods[ $shippingId ];
         }
 
         $paymentMethod = ( isset( $_POST['payment_method'] ) ) ? trim( sanitize_text_field( $_POST['payment_method'] ) ) : '';
@@ -270,11 +270,31 @@ class OrderList extends BaseAdminPage
         $orders = wc_get_orders( $args );
         foreach ($orders as $order)
         {
-            if ( ! empty( $shippingMehods ) )
+            if ( ! empty( $shippingMethods ) )
             {
                 // Фильтруем по методам доставки
-                if ( ! in_array( strtolower($order->get_shipping_method()), array_map('strtolower', $shippingMehods )))
-                    continue;
+                $filterResult = false;
+
+                // Сначала проверяем фильтры методов
+                $filterResult = apply_filters('inwccrm_orderlist_shipping_filter', $filterResult, $order, $shippingMethods );
+
+                // Если фильтры вернули false, проверяем наличие НАЗВАНИЯ метода доставки 
+                // в методе доставки товара
+                // Пишем развернуто, чтобы логика была понятна!
+                if ( ! $filterResult ) 
+                {
+                    foreach ($shippingMethods as $method)
+                    {
+                        if ( ! (false === strpos( strtolower( $order->get_shipping_method() ),  strtolower( $method ) ) ) )
+                        {
+                            $filterResult = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Для этого заказа выбранные методы заказа не подходят
+                if ( ! $filterResult ) continue;
             }
 
             // Произвольная фильтрация списка заказов. Если true запись попадает на вывод
