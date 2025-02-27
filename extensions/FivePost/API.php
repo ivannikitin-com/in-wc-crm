@@ -62,7 +62,10 @@ class API
         $args = array(
             'body' => 'subject=OpenAPI&audience=A122019!'
         );
-        $response = wp_remote_post( $url, $args );        
+        $response = wp_remote_post( $url, $args );
+        /*ob_start();
+        var_dump($response);
+        file_put_contents('/var/www/medknigaservis.ru/www/wp-content/plugins/in-wc-crm/Fivepost.log', ob_get_clean(), FILE_APPEND);*/  
 
         // Проверка результата
         if ( is_wp_error( $response ) ) {
