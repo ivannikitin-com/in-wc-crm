@@ -55,12 +55,34 @@ class API
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
-            $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
+            if ( ! $product ) {
+                $_products = get_posts( array(  
+                    'post_status' => 'publish', 
+                    'post_type' => 'product',
+                    'title' => $orderItem->get_name()
+                ));
+                if (! empty( $_products )) {
+                    $product_got_by_title = $_products[0];
+                    $product = wc_get_product($product_got_by_title->ID);
+                } else {
+                    $product = NULL;
+                }
+            }               
+            if ( ! empty($product) )  {
+                $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
+                
+            } else {
+                $sku = '';
+
+            }
+            //$sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
             $itemTotalPrice = $orderItem->get_total() + $orderItem->get_total_tax();
             $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, 2 ) : $itemTotalPrice;
             $summTotal += $itemTotalPrice;
+            if ( ! empty($product) ) {
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
+            } 
             $weghtTotal += $itemWeghtTotal;
 
             //  Массив товарных вложений
