@@ -59,10 +59,11 @@ class API
         
         // Запрос токена
         $url = self::URL . 'jwt-generate-claims/rs256/1?apikey=' . $apiKey;
+        
         $args = array(
             'body' => 'subject=OpenAPI&audience=A122019!'
         );
-        $response = wp_remote_post( $url, $args );        
+        $response = wp_remote_post( $url, $args );
 
         // Проверка результата
         if ( is_wp_error( $response ) ) {
@@ -123,7 +124,7 @@ class API
             //Plugin::get()->log( __( 'FivePost Продукт ', IN_WC_CRM ) . ': ' . var_export( $orderItem, true ), self::LOGFILE );
             $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
-            $itemTotalPrice = $orderItem->get_total();
+            $itemTotalPrice = $orderItem->get_total() + $orderItem->get_total_tax();
             $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, 2 ) : $itemTotalPrice;
             $summTotal += $itemTotalPrice;
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
@@ -245,7 +246,7 @@ class API
      */
     public function send( $orders )
     {   
-        // URL отправки заказа
+         // URL отправки заказа
         $url = self::URL . self::METHOD_ORDERS;
         Plugin::get()->log( __( 'FivePost log: send orders', IN_WC_CRM ) . ': ' . $url, self::LOGFILE );
 
@@ -281,7 +282,7 @@ class API
                 ) );
                 Plugin::get()->log( 'JSON: ' . $json_data, self::LOGFILE );
 
-                // Передаем заказ
+                 // Передаем заказ
                 $response = wp_remote_post( $url, array(
                     'headers' => array(
                         'Authorization' => 'Bearer ' . $this->token,

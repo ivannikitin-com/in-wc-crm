@@ -54,7 +54,7 @@ class API
         {
             $product = $orderItem->get_product();
             $itemQuantity = $orderItem->get_quantity();
-            $itemPrice = ( $itemQuantity != 0 ) ? $orderItem->get_total() / $itemQuantity : 0;
+            $itemPrice = ( $itemQuantity != 0 ) ? ($orderItem->get_total()+  $orderItem->get_total_tax()) / $itemQuantity : 0;
             //$summTotal += $itemQuantity * $itemPrice;
             $items[] = array(
                 'prodcode'=> apply_filters( 'inwccrm_b2cpl_item_prodcode', $product->get_sku(), $order, $product ),     // артикул
