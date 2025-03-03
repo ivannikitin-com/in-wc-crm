@@ -89,7 +89,8 @@ class OrderList extends BaseAdminPage
                 break;
 
             case 'total':
-                $data = $order->calculate_totals();
+                //$data = $order->calculate_totals();
+                $data = $order->get_total();
                 break;
                 
             case 'payment_method':
