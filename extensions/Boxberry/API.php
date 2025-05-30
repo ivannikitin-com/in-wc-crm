@@ -55,6 +55,7 @@ class API
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
+
             if ( ! $product ) {
                 $_products = get_posts( array(  
                     'post_status' => 'publish', 
@@ -74,6 +75,10 @@ class API
             } else {
                 $sku = '';
 
+            }
+            if ($product && $product->is_virtual()) {
+                // Пропускаем виртуальый товар
+                continue;
             }
             //$sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();

@@ -105,10 +105,14 @@ class API
         }        
 
         // Точка получения
-        preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?:\s|$)/', $order->get_formatted_shipping_address(), $matches);
+        /*preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?:\s|$)/', $order->get_formatted_shipping_address(), $matches);*/
+        preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?=[,\s]|$)/', $order->get_formatted_shipping_address(), $matches);
+        
         $receiverLocation = ($matches) ? $matches[1] : false ;  
         Plugin::get()->log( __( 'FivePost Адрес доставки ', IN_WC_CRM ) . ': ' . $order->get_formatted_shipping_address(), self::LOGFILE );
         Plugin::get()->log( __( 'FivePost Точка получения ', IN_WC_CRM ) . ': ' . var_export( $matches, true ), self::LOGFILE );
+        Plugin::get()->log( __( 'receiverLocation ', IN_WC_CRM ) . ': ' . var_export( $receiverLocation, true ), self::LOGFILE );
+
         if ( empty( $receiverLocation ) )
         {
             throw new NoRequiredParameter( __( 'Не определен параметр receiverLocation (точка получения)', IN_WC_CRM ) );
@@ -121,12 +125,16 @@ class API
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             if ( ! $product = $orderItem->get_product() ) continue; // Продукт на предзаказе!
+            if ($product && $product->is_virtual()) {
+                // Пропускаем виртуальый товар
+                continue;
+            }
             //Plugin::get()->log( __( 'FivePost Продукт ', IN_WC_CRM ) . ': ' . var_export( $orderItem, true ), self::LOGFILE );
             $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
-            $itemTotalPrice = $orderItem->get_total() + $orderItem->get_total_tax();
+            $itemTotalPrice = round($orderItem->get_total() + $orderItem->get_total_tax(), 2);
             $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, 2 ) : $itemTotalPrice;
-            $summTotal += $itemTotalPrice;
+            $summTotal += round($itemTotalPrice, 2);
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
             $weghtTotal += $itemWeghtTotal;
 
