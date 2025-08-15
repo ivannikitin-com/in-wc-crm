@@ -51,7 +51,10 @@ class API
         // Элементы заказа
         $items = array();
         $summTotal = 0;
-        $weghtTotal = 0;    
+        $weghtTotal = 0;
+        
+        // Получаем настройки округления WooCommerce
+        $decimals = wc_get_price_decimals();    
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
@@ -74,7 +77,8 @@ class API
                 
             } else {
                 $sku = '';
-
+                // Логируем отсутствующий товар
+                Plugin::get()->log( __( 'Boxberry товар не найден', IN_WC_CRM ) . ': ' . $orderItem->get_name() . ' (ID: ' . $orderItem->get_product_id() . ')', self::LOGFILE );
             }
             if ($product && $product->is_virtual()) {
                 // Пропускаем виртуальый товар
@@ -82,9 +86,13 @@ class API
             }
             //$sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
+                       
             $itemTotalPrice = $orderItem->get_total() + $orderItem->get_total_tax();
-            $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, 2 ) : $itemTotalPrice;
-            $summTotal += $itemTotalPrice;
+            // Используем стандартные настройки округления WooCommerce
+            $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, $decimals ) : round( $itemTotalPrice, $decimals );
+            
+             $summTotal += round( $itemTotalPrice, $decimals );
+            
             if ( ! empty($product) ) {
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
             } 
@@ -95,7 +103,7 @@ class API
                 // Артикул товара
                 'id'        => apply_filters( 'inwccrm_boxberry_orderitem_id', $sku, $order, $orderItem ),
                 // Наименование товара
-                'name'      => apply_filters( 'inwccrm_boxberry_orderitem_name', $product->get_name(), $order, $orderItem ),
+                'name'      => apply_filters( 'inwccrm_boxberry_orderitem_name', ( $product ? $product->get_name() : $orderItem->get_name() ), $order, $orderItem ),
                 // Единица измерения
                 'UnitName'  => apply_filters( 'inwccrm_boxberry_orderitem_unitname', 'шт', $orderItemId, $order, $orderItem ),
                 // Процент НДС (число от 0 до 20)
@@ -122,6 +130,20 @@ class API
         // Дефолтовое значение delivery_date
         $delivery_date = date( 'Y-m-d', time() + DAY_IN_SECONDS );
 
+        // Получаем сумму сборов (fees) - бонусы, скидки и другие дополнительные сборы
+        $feesTotal = $order->get_total_fees();
+        
+        // Логируем детальную информацию о сборах
+        $fees = $order->get_fees();
+        if (!empty($fees)) {
+            foreach ($fees as $fee) {
+                Plugin::get()->log( __( 'Boxberry сбор', IN_WC_CRM ) . ': ' . $fee->get_name() . ' = ' . $fee->get_total(), self::LOGFILE );
+            }
+        }
+        
+        // Логируем итоговые суммы для сравнения
+        Plugin::get()->log( __( 'Boxberry итоговые суммы', IN_WC_CRM ) . ': summTotal=' . $summTotal . ', feesTotal=' . $feesTotal . ', order->get_total()=' . $order->get_total() . ', order->get_shipping_total()=' . $order->get_shipping_total(), self::LOGFILE );
+        
         // Формирование и возврат заказа
         return array(
             'updateByTrack' => apply_filters( 'inwccrm_boxberry_updatebytrack', '', $order ),
@@ -129,12 +151,14 @@ class API
             'PalletNumber'  => apply_filters( 'inwccrm_boxberry_palletnumber', '', $order ),
             'barcode'       => apply_filters( 'inwccrm_boxberry_barcode', '', $order ),
             // Объявленная стоимость посылки БЕЗ доставки
-            'price'         => apply_filters( 'inwccrm_boxberry_price', $summTotal, $order ),
+            'price'         => apply_filters( 'inwccrm_boxberry_price', round( $summTotal, $decimals ), $order ),
             // Сумма к оплате (сумма, которую необходимо взять с получателя).
             // Для полностью предоплаченного заказа указывать 0.
             'payment_sum'   => apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ), 
             // Стоимость доставки объявленная получателю 
             'delivery_sum'  => apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order ),
+            // Сумма сборов (бонусы, скидки и другие дополнительные сборы)
+            'fees_sum'      => apply_filters( 'inwccrm_boxberry_fees_sum', round( $feesTotal, $decimals ), $order ),
             // Вид выдачи заказа, возможные значения:
             //  0 - выдача без вскрытия, 
             //  1 - выдача со вскрытием и проверкой комплектности,
