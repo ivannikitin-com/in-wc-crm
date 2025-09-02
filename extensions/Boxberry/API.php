@@ -215,7 +215,7 @@ class API
                 // Код пункта выдачи 
                 'name'   => apply_filters( 'inwccrm_boxberry_shop_name',  '', $order ),
                 // Код пункта поступления
-                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', '010', $order ),
+                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', 'f43a9f99-212a-44fe-acf3-54541401773b', $order ),
             ),
             
             // Блок с информацией о получателе отправления
