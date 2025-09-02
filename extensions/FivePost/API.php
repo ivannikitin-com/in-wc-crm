@@ -121,7 +121,9 @@ class API
         // Элементы заказа
         $items = array();
         $summTotal = 0;
-        $weghtTotal = 0;    
+        $weghtTotal = 0;
+        $decimals = wc_get_price_decimals();
+        
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             if ( ! $product = $orderItem->get_product() ) continue; // Продукт на предзаказе!
@@ -132,9 +134,9 @@ class API
             //Plugin::get()->log( __( 'FivePost Продукт ', IN_WC_CRM ) . ': ' . var_export( $orderItem, true ), self::LOGFILE );
             $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
-            $itemTotalPrice = round($orderItem->get_total() + $orderItem->get_total_tax(), 2);
-            $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, 2 ) : $itemTotalPrice;
-            $summTotal += round($itemTotalPrice, 2);
+            $itemTotalPrice = round($orderItem->get_total() + $orderItem->get_total_tax(), $decimals);
+            $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, $decimals ) : $itemTotalPrice;
+            $summTotal += round($itemTotalPrice, $decimals);
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
             $weghtTotal += $itemWeghtTotal;
 
@@ -190,6 +192,9 @@ class API
         if ( $weghtTotal < 5 ) $weghtTotal = 5;
         if ( $weghtTotal > 31000 ) $weghtTotal = 31000;
 
+        // Получаем сумму сборов (fees) - бонусы, скидки и другие дополнительные сборы
+        $feesTotal = $order->get_total_fees();
+        
         // Дефолтовое значение delivery_date
         $delivery_date = date( 'c', time() + DAY_IN_SECONDS );
 
@@ -220,13 +225,14 @@ class API
             'cost' => apply_filters( 'inwccrm_fivepost_cost', array(
                 'deliveryCost' => apply_filters( 'inwccrm_fivepost_deliverycost', floatval( $order->get_shipping_total() ), $order ),
                 'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
-                'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
+                'feesCost' => apply_filters( 'inwccrm_fivepost_feescost', round( $feesTotal, $decimals ), $order ),
+                'feesCostCurrency' => apply_filters( 'inwccrm_fivepost_feescostcurrency', 'RUB', $order ),
                 // prepaymentSum
                 'paymentValue' => apply_filters( 'inwccrm_fivepost_paymentvalue', 
                     ( empty( $order->get_transaction_id() ) ) ? floatval( $order->get_total() ) : 0, $order ),
                 'paymentCurrency' => apply_filters( 'inwccrm_fivepost_paymentcurrency', 'RUB', $order ),
                 // paymentType
-                'price' => apply_filters( 'inwccrm_fivepost_paymentprice', floatval( $summTotal ), $order ),       
+                'price' => apply_filters( 'inwccrm_fivepost_paymentprice', round( $summTotal, $decimals ), $order ),       
                 'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ),                
             ), $order ),
             // Пока делаем заказ одноместным!
@@ -239,7 +245,7 @@ class API
                     'length'    => apply_filters( 'inwccrm_fivepost_cargo_length', 1, $order ),
                     'width'     => apply_filters( 'inwccrm_fivepost_cargo_width', 1, $order ),
                     'weight'    => apply_filters( 'inwccrm_fivepost_cargo_weight', $weghtTotal, $order ),
-                    'price'     => apply_filters( 'inwccrm_fivepost_cargo_price', $summTotal, $order ),
+                    'price'     => apply_filters( 'inwccrm_fivepost_cargo_price', round( $summTotal, $decimals ), $order ),
                     'currency' => apply_filters( 'inwccrm_fivepost_cargo_currency', 'RUB', $order ), 
                     'productValues' => $items
                 )
