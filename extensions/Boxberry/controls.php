@@ -1,1 +1,1 @@
-<button id="btnBoxberry"><i class="fas fa-retweet"></i>&nbsp;<?php esc_html_e( 'Boxberry', IN_WC_CRM ); ?></button>
+<button id="btnBoxberry"><i class="fas fa-retweet"></i>&nbsp;<?php esc_html_e( 'Яндекс', IN_WC_CRM ); ?></button>
