@@ -4,7 +4,6 @@
  */
 namespace IN_WC_CRM\Extensions;
 use \IN_WC_CRM\Plugin as Plugin;
-use \WC_Shipping as WC_Shipping;
 use \WC_Payment_Gateways as WC_Payment_Gateways;
 
 class OrderList extends BaseAdminPage
@@ -170,7 +169,7 @@ class OrderList extends BaseAdminPage
     private function getShippingMethods()
     {
         $shippingMethods = array();
-        $shipping = new WC_Shipping();        
+        $shipping = WC()->shipping();
         foreach( $shipping->get_shipping_methods() as $key => $method )
         {
             $shippingMethods[$key] = $method->method_title;
