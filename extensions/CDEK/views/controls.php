@@ -1,0 +1,1 @@
+<button id="btnCDEK"><i class="fas fa-truck"></i>&nbsp;<?php esc_html_e( 'CDEK', IN_WC_CRM ); ?></button>
