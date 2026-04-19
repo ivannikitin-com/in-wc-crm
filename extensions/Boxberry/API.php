@@ -31,6 +31,22 @@ class API
 
 
     /**
+     * Запись в boxberry-rest.log без учёта WP_DEBUG (временно для отладки выгрузки).
+     *
+     * @param mixed $message Текст, массив или объект (как в Plugin::log).
+     */
+    private static function write_rest_log( $message ) {
+        $logfile = Plugin::get()->path . self::LOGFILE;
+        $prefix  = '[' . date( 'd.m.Y H:i:s' ) . '] ';
+        if ( is_array( $message ) || is_object( $message ) ) {
+            $line = $prefix . print_r( $message, true ) . PHP_EOL;
+        } else {
+            $line = $prefix . $message . PHP_EOL;
+        }
+        file_put_contents( $logfile, $line, FILE_APPEND | LOCK_EX );
+    }
+
+    /**
      * Конструктор
      * @param string    $token            API Токен
 
@@ -48,9 +64,8 @@ class API
      */
     private function getOrderData( $order )
     {
-        // Элементы заказа
-        $items = array();
-        $summTotal = 0;
+        // Элементы заказа (сначала строки без финальной сверки с Boxberry)
+        $item_rows = array();
         $weghtTotal = 0;
         
         // Получаем настройки округления WooCommerce
@@ -78,7 +93,7 @@ class API
             } else {
                 $sku = '';
                 // Логируем отсутствующий товар
-                Plugin::get()->log( __( 'Boxberry товар не найден', IN_WC_CRM ) . ': ' . $orderItem->get_name() . ' (ID: ' . $orderItem->get_product_id() . ')', self::LOGFILE );
+                self::write_rest_log( __( 'Boxberry товар не найден', IN_WC_CRM ) . ': ' . $orderItem->get_name() . ' (ID: ' . $orderItem->get_product_id() . ')' );
             }
             if ($product && $product->is_virtual()) {
                 // Пропускаем виртуальый товар
@@ -90,30 +105,91 @@ class API
             $itemTotalPrice = $orderItem->get_total() + $orderItem->get_total_tax();
             // Используем стандартные настройки округления WooCommerce
             $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, $decimals ) : round( $itemTotalPrice, $decimals );
-            
-             $summTotal += round( $itemTotalPrice, $decimals );
-            
+
             if ( ! empty($product) ) {
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
-            } 
+            } else {
+                $itemWeghtTotal = 0;
+            }
             $weghtTotal += $itemWeghtTotal;
 
-            //  Массив товарных вложений
-            $items[] = array(
-                // Артикул товара
-                'id'        => apply_filters( 'inwccrm_boxberry_orderitem_id', $sku, $order, $orderItem ),
-                // Наименование товара
-                'name'      => apply_filters( 'inwccrm_boxberry_orderitem_name', ( $product ? $product->get_name() : $orderItem->get_name() ), $order, $orderItem ),
-                // Единица измерения
-                'UnitName'  => apply_filters( 'inwccrm_boxberry_orderitem_unitname', 'шт', $orderItemId, $order, $orderItem ),
-                // Процент НДС (число от 0 до 20)
-                'nds'       => apply_filters( 'inwccrm_boxberry_orderitem_nds', 0, $orderItemId, $order, $orderItem ),
-                // Цена за единицу товара
-                'price'     => apply_filters( 'inwccrm_boxberry_orderitem_price', $itemPrice, $order, $orderItem ),
-                // Количество единиц товара
-                'quantity'  => apply_filters( 'inwccrm_boxberry_orderitem_count', $itemQuantity, $order, $orderItem )
+            $item_rows[] = array(
+                'orderItemId'   => $orderItemId,
+                'orderItem'     => $orderItem,
+                'product'       => $product,
+                'sku'           => $sku,
+                'itemQuantity'  => $itemQuantity,
+                'itemPrice'     => $itemPrice,
             );
         }
+
+        $feesTotal = $order->get_total_fees();
+        $fees_total_rounded = round( $feesTotal, $decimals );
+        $payment_sum_f = apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order );
+        $delivery_sum_f = apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order );
+        $fees_sum_f = apply_filters( 'inwccrm_boxberry_fees_sum', $fees_total_rounded, $order );
+        $goods_target = round(
+            (float) $payment_sum_f - (float) $delivery_sum_f - (float) $fees_sum_f,
+            $decimals
+        );
+
+        $boxberry_items_sum = static function ( $rows, $ord ) use ( $decimals ) {
+            $sum = 0.0;
+            foreach ( $rows as $row ) {
+                $qty = (float) apply_filters( 'inwccrm_boxberry_orderitem_count', $row['itemQuantity'], $ord, $row['orderItem'] );
+                $pr  = (float) apply_filters( 'inwccrm_boxberry_orderitem_price', $row['itemPrice'], $ord, $row['orderItem'] );
+                $sum += round( $pr * $qty, $decimals );
+            }
+            return round( $sum, $decimals );
+        };
+
+        $items_sum_before = null;
+        $delta_applied      = 0.0;
+        if ( ! empty( $item_rows ) ) {
+            $items_sum_before = $boxberry_items_sum( $item_rows, $order );
+            $delta            = round( $goods_target - $items_sum_before, $decimals );
+            $epsilon          = pow( 10, -max( 2, $decimals + 1 ) );
+            if ( abs( $delta ) > $epsilon ) {
+                $last_i = count( $item_rows ) - 1;
+                $qty    = (float) apply_filters(
+                    'inwccrm_boxberry_orderitem_count',
+                    $item_rows[ $last_i ]['itemQuantity'],
+                    $order,
+                    $item_rows[ $last_i ]['orderItem']
+                );
+                if ( $qty > 0 ) {
+                    $adjusted = round( (float) $item_rows[ $last_i ]['itemPrice'] + $delta / $qty, $decimals );
+                    if ( $adjusted >= 0 ) {
+                        $item_rows[ $last_i ]['itemPrice'] = $adjusted;
+                        $delta_applied                     = $delta;
+                    }
+                }
+            }
+        }
+
+        $items = array();
+        foreach ( $item_rows as $row ) {
+            $orderItem    = $row['orderItem'];
+            $orderItemId  = $row['orderItemId'];
+            $product      = $row['product'];
+            $sku          = $row['sku'];
+            $itemQuantity = $row['itemQuantity'];
+            $itemPrice    = $row['itemPrice'];
+            $items[]      = array(
+                'id'       => apply_filters( 'inwccrm_boxberry_orderitem_id', $sku, $order, $orderItem ),
+                'name'     => apply_filters( 'inwccrm_boxberry_orderitem_name', ( $product ? $product->get_name() : $orderItem->get_name() ), $order, $orderItem ),
+                'UnitName' => apply_filters( 'inwccrm_boxberry_orderitem_unitname', 'шт', $orderItemId, $order, $orderItem ),
+                'nds'      => apply_filters( 'inwccrm_boxberry_orderitem_nds', 0, $orderItemId, $order, $orderItem ),
+                'price'    => apply_filters( 'inwccrm_boxberry_orderitem_price', $itemPrice, $order, $orderItem ),
+                'quantity' => apply_filters( 'inwccrm_boxberry_orderitem_count', $itemQuantity, $order, $orderItem ),
+            );
+        }
+
+        $summTotal = 0.0;
+        foreach ( $items as $it ) {
+            $summTotal += round( (float) $it['price'] * (float) $it['quantity'], $decimals );
+        }
+        $summTotal = round( $summTotal, $decimals );
 
         // В параметр weight нужно передавать вес в граммах, т.е. целое число
         $weghtTotal = intval( $weghtTotal * 1000 );
@@ -130,19 +206,24 @@ class API
         // Дефолтовое значение delivery_date
         $delivery_date = date( 'Y-m-d', time() + DAY_IN_SECONDS );
 
-        // Получаем сумму сборов (fees) - бонусы, скидки и другие дополнительные сборы
-        $feesTotal = $order->get_total_fees();
-        
         // Логируем детальную информацию о сборах
         $fees = $order->get_fees();
         if (!empty($fees)) {
             foreach ($fees as $fee) {
-                Plugin::get()->log( __( 'Boxberry сбор', IN_WC_CRM ) . ': ' . $fee->get_name() . ' = ' . $fee->get_total(), self::LOGFILE );
+                self::write_rest_log( __( 'Boxberry сбор', IN_WC_CRM ) . ': ' . $fee->get_name() . ' = ' . $fee->get_total() );
             }
         }
         
         // Логируем итоговые суммы для сравнения
-        Plugin::get()->log( __( 'Boxberry итоговые суммы', IN_WC_CRM ) . ': summTotal=' . $summTotal . ', feesTotal=' . $feesTotal . ', order->get_total()=' . $order->get_total() . ', order->get_shipping_total()=' . $order->get_shipping_total(), self::LOGFILE );
+        self::write_rest_log(
+            __( 'Boxberry итоговые суммы', IN_WC_CRM )
+            . ': summTotal=' . $summTotal
+            . ', goods_target=' . $goods_target
+            . ( null !== $items_sum_before ? ', items_sum_before=' . $items_sum_before . ', delta_applied=' . $delta_applied : '' )
+            . ', feesTotal=' . $feesTotal
+            . ', order->get_total()=' . $order->get_total()
+            . ', order->get_shipping_total()=' . $order->get_shipping_total()
+        );
         
         // Формирование и возврат заказа
         return array(
@@ -265,7 +346,7 @@ class API
      */
     public function send( $orders )
     {        
-        Plugin::get()->log( __( 'BoxBerry log: send orders', IN_WC_CRM ) . ': ' . self::URL, self::LOGFILE );
+        self::write_rest_log( __( 'BoxBerry log: send orders', IN_WC_CRM ) . ': ' . self::URL );
 
         // Проверим данные для входа
         if ( empty( $this->token ) )
@@ -287,19 +368,19 @@ class API
         {
             try
             {
-                Plugin::get()->log( __( 'Способ доставки', IN_WC_CRM ) . 
-                    ': ' . $order->get_shipping_method(), self::LOGFILE );
-                    
-                Plugin::get()->log( __( 'Адрес доставки', IN_WC_CRM ) . 
-                    ': ' . $order->get_shipping_address_1(), self::LOGFILE );
+                self::write_rest_log( __( 'Способ доставки', IN_WC_CRM ) .
+                    ': ' . $order->get_shipping_method() );
 
-                Plugin::get()->log( __( 'Заказ', IN_WC_CRM ) . 
-                    ': ' . var_export($order, true), self::LOGFILE );
+                self::write_rest_log( __( 'Адрес доставки', IN_WC_CRM ) .
+                    ': ' . $order->get_shipping_address_1() );
+
+                self::write_rest_log( __( 'Заказ', IN_WC_CRM ) .
+                    ': ' . var_export( $order, true ) );
 
                 // Данные заказа для передачи
                 $data = $this->getOrderData( $order );
-                Plugin::get()->log( __( 'Запрос', IN_WC_CRM ), self::LOGFILE );
-                Plugin::get()->log( $data, self::LOGFILE ); 
+                self::write_rest_log( __( 'Запрос', IN_WC_CRM ) );
+                self::write_rest_log( $data ); 
 
                 // Передача заказа
                 $args = array(
@@ -311,13 +392,13 @@ class API
                 );
                 $response = wp_remote_post( self::URL, $args );
 
-                Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ), self::LOGFILE );
-                Plugin::get()->log( $response, self::LOGFILE );                   
+                self::write_rest_log( __( 'Ответ сервера', IN_WC_CRM ) );
+                self::write_rest_log( $response );                   
             } 
             catch (Exception $e) // Ловим и логируем ошибки
             {
                 // Возникли ошибки
-                Plugin::get()->log( __( 'Ошибки', IN_WC_CRM ) . ' ' . var_export( $e, true ), self::LOGFILE );
+                self::write_rest_log( __( 'Ошибки', IN_WC_CRM ) . ' ' . var_export( $e, true ) );
                 throw $e; 
             }
             $responses[$order->get_ID()] = $response;
