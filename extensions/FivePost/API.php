@@ -36,6 +36,23 @@ class API
      */
     const TOKEN_CACHE = 'in-wc-crm_fivepost_token';
 
+    /**
+     * Записывает лог FivePost независимо от WP_DEBUG.
+     *
+     * @param mixed $message
+     */
+    private function logAlways( $message )
+    {
+        if ( ! WP_DEBUG ) return;
+        $logfile = Plugin::get()->path . self::LOGFILE;
+        $body = ( is_array( $message ) || is_object( $message ) ) ? print_r( $message, true ) : (string) $message;
+        file_put_contents(
+            $logfile,
+            '[' . date('d.m.Y H:i:s') . '] ' . ': ' . $body . PHP_EOL,
+            FILE_APPEND
+        );
+    }
+
 
     /**
      * Конструктор
@@ -55,7 +72,7 @@ class API
      * Получает Bearer токен
      */
     private function getToken( $apiKey ){
-        Plugin::get()->log( 'Получение токена для API Key: ' . $apiKey, self::LOGFILE ); 
+        $this->logAlways( 'Получение токена для API Key: ' . $apiKey ); 
         
         // Запрос токена
         $url = self::URL . 'jwt-generate-claims/rs256/1?apikey=' . $apiKey;
@@ -75,7 +92,7 @@ class API
 
         // Ответ получен
         if ( !$response || !isset( $response['body'] ) ) {
-            Plugin::get()->log( 'Ответ сервера: ' . var_export($response, true), self::LOGFILE );
+            $this->logAlways( 'Ответ сервера: ' . var_export($response, true) );
             throw new GetTokenException( 
                 __( 'Токен FivePost не получен' , IN_WC_CRM ) . 
                 ': ' . var_export($response, true)
@@ -83,7 +100,7 @@ class API
         };
 
         $responseObj = json_decode( $response['body'] );
-        Plugin::get()->log( 'Токен получен: ' . $responseObj->jwt, self::LOGFILE );
+        $this->logAlways( 'Токен получен: ' . $responseObj->jwt );
         return $responseObj->jwt;
     }
 
@@ -109,9 +126,9 @@ class API
         preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?=[,\s]|$)/', $order->get_formatted_shipping_address(), $matches);
         
         $receiverLocation = ($matches) ? $matches[1] : false ;  
-        Plugin::get()->log( __( 'FivePost Адрес доставки ', IN_WC_CRM ) . ': ' . $order->get_formatted_shipping_address(), self::LOGFILE );
-        Plugin::get()->log( __( 'FivePost Точка получения ', IN_WC_CRM ) . ': ' . var_export( $matches, true ), self::LOGFILE );
-        Plugin::get()->log( __( 'receiverLocation ', IN_WC_CRM ) . ': ' . var_export( $receiverLocation, true ), self::LOGFILE );
+        $this->logAlways( __( 'FivePost Адрес доставки ', IN_WC_CRM ) . ': ' . $order->get_formatted_shipping_address() );
+        $this->logAlways( __( 'FivePost Точка получения ', IN_WC_CRM ) . ': ' . var_export( $matches, true ) );
+        $this->logAlways( __( 'receiverLocation ', IN_WC_CRM ) . ': ' . var_export( $receiverLocation, true ) );
 
         if ( empty( $receiverLocation ) )
         {
@@ -120,6 +137,7 @@ class API
 
         // Элементы заказа
         $items = array();
+        $itemTotals = array();
         $summTotal = 0;
         $weghtTotal = 0;
         $decimals = wc_get_price_decimals();
@@ -132,11 +150,10 @@ class API
                 continue;
             }
             //Plugin::get()->log( __( 'FivePost Продукт ', IN_WC_CRM ) . ': ' . var_export( $orderItem, true ), self::LOGFILE );
-            $sku = ( ! empty( $product->get_sku() ) ) ? $product->get_sku() : 'SKU_' .  $product->get_id();
             $itemQuantity = $orderItem->get_quantity();
             $itemTotalPrice = round($orderItem->get_total() + $orderItem->get_total_tax(), $decimals);
             $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, $decimals ) : $itemTotalPrice;
-            $summTotal += round($itemTotalPrice, $decimals);
+            $summTotal += $itemTotalPrice;
             $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
             $weghtTotal += $itemWeghtTotal;
 
@@ -178,6 +195,11 @@ class API
                 ), $order, $orderItem ),
             */
             );
+            $itemTotals[] = array(
+                'index' => count( $items ) - 1,
+                'line_total' => $itemTotalPrice,
+                'quantity' => max( 1, (int) $itemQuantity ),
+            );
         }
 
         // Проверка массива $items
@@ -194,9 +216,110 @@ class API
 
         // Получаем сумму сборов (fees) - бонусы, скидки и другие дополнительные сборы
         $feesTotal = $order->get_total_fees();
+
+        $deliveryCost = floatval( $order->get_shipping_total() );
+        $paymentValue = ( empty( $order->get_transaction_id() ) ) ? floatval( $order->get_total() ) : 0;
+
+        $servicesTotal = ( $feesTotal > 0 ) ? round( $feesTotal, $decimals ) : 0.0;
+
+        // Единая подгонка товарной части для всех заказов:
+        // sum(productValues.price * productValues.value) = paymentValue - deliveryCost - servicesTotal.
+        if ( ! empty( $itemTotals ) )
+        {
+            $multiplier = (int) pow( 10, $decimals );
+            $lineCents = array();
+            $sumLineCents = 0;
+            foreach ( $itemTotals as $row )
+            {
+                $cents = (int) round( $row['line_total'] * $multiplier );
+                $lineCents[] = $cents;
+                $sumLineCents += $cents;
+            }
+
+            if ( $sumLineCents > 0 )
+            {
+                $targetItemsTotal = max( 0, round( $paymentValue - $deliveryCost - $servicesTotal, $decimals ) );
+                $targetCents = (int) round( $targetItemsTotal * $multiplier );
+                $allocated = 0;
+                $newLineCents = array();
+                $fractions = array();
+
+                foreach ( $lineCents as $i => $cents )
+                {
+                    $exact = ( $targetCents * $cents ) / $sumLineCents;
+                    $floor = (int) floor( $exact );
+                    $newLineCents[$i] = $floor;
+                    $fractions[$i] = $exact - $floor;
+                    $allocated += $floor;
+                }
+
+                $remainder = $targetCents - $allocated;
+                if ( $remainder > 0 )
+                {
+                    arsort( $fractions );
+                    foreach ( array_keys( $fractions ) as $i )
+                    {
+                        if ( $remainder <= 0 ) break;
+                        $newLineCents[$i]++;
+                        $remainder--;
+                    }
+                }
+
+                $summTotal = 0;
+                foreach ( $itemTotals as $i => $row )
+                {
+                    $lineTotal = $newLineCents[$i] / $multiplier;
+                    $quantity = max( 1, (int) $row['quantity'] );
+                    $unitPrice = round( $lineTotal / $quantity, $decimals );
+                    $items[$row['index']]['price'] = apply_filters( 'inwccrm_fivePost_orderitem_price', $unitPrice, $order );
+                    $summTotal += round( $unitPrice * $quantity, $decimals );
+                }
+                $summTotal = round( $summTotal, $decimals );
+
+                // Финальная компенсация накопленной погрешности округления unit price.
+                $diff = round( $targetItemsTotal - $summTotal, $decimals );
+                if ( 0.0 !== (float) $diff )
+                {
+                    $adjustIdx = -1;
+                    foreach ( $itemTotals as $row )
+                    {
+                        if ( 1 === (int) $row['quantity'] )
+                        {
+                            $adjustIdx = $row['index'];
+                            break;
+                        }
+                    }
+                    if ( -1 === $adjustIdx )
+                    {
+                        $last = end( $itemTotals );
+                        $adjustIdx = $last['index'];
+                    }
+                    $items[$adjustIdx]['price'] = round( $items[$adjustIdx]['price'] + $diff, $decimals );
+                    $summTotal = round( $targetItemsTotal, $decimals );
+                }
+            }
+        }
         
-        // Дефолтовое значение delivery_date
-        $delivery_date = date( 'c', time() + DAY_IN_SECONDS );
+        $cost = array(
+            'deliveryCost' => apply_filters( 'inwccrm_fivepost_deliverycost', $deliveryCost, $order ),
+            'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
+            // prepaymentSum
+            'paymentValue' => apply_filters( 'inwccrm_fivepost_paymentvalue',
+                $paymentValue, $order ),
+            'paymentCurrency' => apply_filters( 'inwccrm_fivepost_paymentcurrency', 'RUB', $order ),
+            // paymentType
+            'price' => apply_filters( 'inwccrm_fivepost_paymentprice', round( $summTotal, $decimals ), $order ),
+            'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ),
+        );
+
+        if ( $servicesTotal > 0 )
+        {
+            $cost['services'] = apply_filters( 'inwccrm_fivepost_services', array(
+                array(
+                    'paymentValue' => apply_filters( 'inwccrm_fivepost_services_paymentvalue', $servicesTotal, $order ),
+                ),
+            ), $order );
+        }
 
         // Формирование и возврат заказа
         return array(
@@ -222,19 +345,7 @@ class API
             // name
             // inn
             // phone
-            'cost' => apply_filters( 'inwccrm_fivepost_cost', array(
-                'deliveryCost' => apply_filters( 'inwccrm_fivepost_deliverycost', floatval( $order->get_shipping_total() ), $order ),
-                'deliveryCostCurrency' => apply_filters( 'inwccrm_fivepost_deliverycostcurrency', 'RUB', $order ),
-                'feesCost' => apply_filters( 'inwccrm_fivepost_feescost', round( $feesTotal, $decimals ), $order ),
-                'feesCostCurrency' => apply_filters( 'inwccrm_fivepost_feescostcurrency', 'RUB', $order ),
-                // prepaymentSum
-                'paymentValue' => apply_filters( 'inwccrm_fivepost_paymentvalue', 
-                    ( empty( $order->get_transaction_id() ) ) ? floatval( $order->get_total() ) : 0, $order ),
-                'paymentCurrency' => apply_filters( 'inwccrm_fivepost_paymentcurrency', 'RUB', $order ),
-                // paymentType
-                'price' => apply_filters( 'inwccrm_fivepost_paymentprice', round( $summTotal, $decimals ), $order ),       
-                'priceCurrency' => apply_filters( 'inwccrm_fivepost_pricecurrency', 'RUB', $order ),                
-            ), $order ),
+            'cost' => apply_filters( 'inwccrm_fivepost_cost', $cost, $order ),
             // Пока делаем заказ одноместным!
             'cargoes' => apply_filters( 'inwccrm_fivepost_cargoes', array(
                 // Объект грузоместа
@@ -262,7 +373,7 @@ class API
     {   
          // URL отправки заказа
         $url = self::URL . self::METHOD_ORDERS;
-        Plugin::get()->log( __( 'FivePost log: send orders', IN_WC_CRM ) . ': ' . $url, self::LOGFILE );
+        $this->logAlways( __( 'FivePost log: send orders', IN_WC_CRM ) . ': ' . $url );
 
         // Проверим данные для входа
         if ( empty( $this->token ) )
@@ -288,13 +399,13 @@ class API
             {
                 // Данные заказа для передачи
                 $data = $this->getOrderData( $order );
-                Plugin::get()->log( __( 'Запрос', IN_WC_CRM ) . ': ' .  var_export( $data, true ), self::LOGFILE );
+                $this->logAlways( __( 'Запрос', IN_WC_CRM ) . ': ' .  var_export( $data, true ) );
 
                 // Формируем JSON
                 $json_data = json_encode( array(
                     'partnerOrders' => array( $data) 
                 ) );
-                Plugin::get()->log( 'JSON: ' . $json_data, self::LOGFILE );
+                $this->logAlways( 'JSON: ' . $json_data );
 
                  // Передаем заказ
                 $response = wp_remote_post( $url, array(
@@ -305,12 +416,12 @@ class API
                     'body' => $json_data
                 ) );
 
-                Plugin::get()->log( __( 'Ответ сервера', IN_WC_CRM ) . ': ' . var_export($response, true), self::LOGFILE );              
+                $this->logAlways( __( 'Ответ сервера', IN_WC_CRM ) . ': ' . var_export($response, true ) );              
             } 
             catch (Exception $e) // Ловим и логируем ошибки
             {
                 // Возникли ошибки
-                Plugin::get()->log( __( 'Ошибки', IN_WC_CRM ) . ' ' . var_export( $e, true ), self::LOGFILE );
+                $this->logAlways( __( 'Ошибки', IN_WC_CRM ) . ' ' . var_export( $e, true ) );
                 throw $e; 
             }
             $responses[$order->get_ID()] = $response;
