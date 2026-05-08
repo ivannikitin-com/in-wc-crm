@@ -68,8 +68,9 @@ class API
         $item_rows = array();
         $weghtTotal = 0;
         
-        // Получаем настройки округления WooCommerce
-        $decimals = wc_get_price_decimals();    
+        // Для Boxberry всегда считаем денежные поля минимум с 2 знаками после запятой.
+        // Это нужно, чтобы не терять 0.5/0.01 при балансе goods + delivery + fees = payment.
+        $decimals = max( 2, (int) wc_get_price_decimals() );
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
             $product = $orderItem->get_product();
