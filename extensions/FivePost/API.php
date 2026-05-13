@@ -121,14 +121,21 @@ class API
             throw new NoRequiredParameter( __( 'Не определен параметр senderLocation (склад отправителя)', IN_WC_CRM ) );
         }        
 
-        // Точка получения
-        /*preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?:\s|$)/', $order->get_formatted_shipping_address(), $matches);*/
-        preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?=[,\s]|$)/', $order->get_formatted_shipping_address(), $matches);
-        
-        $receiverLocation = ($matches) ? $matches[1] : false ;  
+        // Точка получения: сперва берем мету от плагина fivepost, затем fallback на UUID в адресе.
+        $receiverLocation = $order->get_meta( '_fivepost_point_id' );
+        $receiverLocationSource = 'meta';
+        if ( empty( $receiverLocation ) || 'NoPoint' === $receiverLocation ) {
+            preg_match('/UUID:\s?([a-fA-F0-9\-]+)(?=[,\s]|$)/', $order->get_formatted_shipping_address(), $matches);
+            $receiverLocation = ( $matches ) ? $matches[1] : false;
+            $receiverLocationSource = 'shipping_address_uuid';
+        } else {
+            $matches = array( 'meta' => $receiverLocation );
+        }
+
         $this->logAlways( __( 'FivePost Адрес доставки ', IN_WC_CRM ) . ': ' . $order->get_formatted_shipping_address() );
         $this->logAlways( __( 'FivePost Точка получения ', IN_WC_CRM ) . ': ' . var_export( $matches, true ) );
         $this->logAlways( __( 'receiverLocation ', IN_WC_CRM ) . ': ' . var_export( $receiverLocation, true ) );
+        $this->logAlways( __( 'receiverLocation source ', IN_WC_CRM ) . ': ' . $receiverLocationSource );
 
         if ( empty( $receiverLocation ) )
         {
