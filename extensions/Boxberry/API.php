@@ -129,6 +129,11 @@ class API
         $payment_sum_f = apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order );
         $delivery_sum_f = apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order );
         $fees_sum_f = apply_filters( 'inwccrm_boxberry_fees_sum', $fees_total_rounded, $order );
+        // Отрицательные fees (бонусы) API не учитывает в балансе при COD —
+        // не передаём их и впитываем скидку в цены товаров (как в FivePost).
+        if ( (float) $fees_sum_f < 0 ) {
+            $fees_sum_f = 0.0;
+        }
         $goods_target = round(
             (float) $payment_sum_f - (float) $delivery_sum_f - (float) $fees_sum_f,
             $decimals
@@ -239,8 +244,8 @@ class API
             'payment_sum'   => apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ), 
             // Стоимость доставки объявленная получателю 
             'delivery_sum'  => apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order ),
-            // Сумма сборов (бонусы, скидки и другие дополнительные сборы)
-            'fees_sum'      => apply_filters( 'inwccrm_boxberry_fees_sum', round( $feesTotal, $decimals ), $order ),
+            // Сумма сборов (отрицательные уже обнулены выше и учтены в ценах товаров)
+            'fees_sum'      => $fees_sum_f,
             // Вид выдачи заказа, возможные значения:
             //  0 - выдача без вскрытия, 
             //  1 - выдача со вскрытием и проверкой комплектности,
