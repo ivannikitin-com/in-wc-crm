@@ -149,25 +149,30 @@ class API
         $weghtTotal = 0;
         $decimals = wc_get_price_decimals();
         
+        $fivePostSettings = get_option( 'IN_WC_CRM-Extensions-FivePost', array() );
+        $defaultItemWeight = isset( $fivePostSettings['FivePost-default-weight'] )
+            ? floatval( $fivePostSettings['FivePost-default-weight'] )
+            : 0.0;
+
         foreach( $order->get_items() as $orderItemId => $orderItem )
         {
-            if ( ! $product = $orderItem->get_product() ) continue; // Продукт на предзаказе!
-            if ($product && $product->is_virtual()) {
-                // Пропускаем виртуальый товар
+            $product = $orderItem->get_product();
+            if ( $product && $product->is_virtual() ) {
                 continue;
             }
-            //Plugin::get()->log( __( 'FivePost Продукт ', IN_WC_CRM ) . ': ' . var_export( $orderItem, true ), self::LOGFILE );
+
             $itemQuantity = $orderItem->get_quantity();
             $itemTotalPrice = round($orderItem->get_total() + $orderItem->get_total_tax(), $decimals);
             $itemPrice = ($itemQuantity > 0 ) ? round( $itemTotalPrice / $itemQuantity, $decimals ) : $itemTotalPrice;
             $summTotal += $itemTotalPrice;
-            $itemWeghtTotal = $itemQuantity * floatval( $product->get_weight() );
+            $itemWeight = $product ? floatval( $product->get_weight() ) : $defaultItemWeight;
+            $itemWeghtTotal = $itemQuantity * $itemWeight;
             $weghtTotal += $itemWeghtTotal;
 
             //  Массив товарных вложений
             $items[] = array(
                 // Наименование товара
-                'name'      => apply_filters( 'inwccrm_fivePost_orderitem_name', $product->get_name(), $order, $orderItem ),                
+                'name'      => apply_filters( 'inwccrm_fivePost_orderitem_name', $orderItem->get_name(), $order, $orderItem ),                
                 // Количество единиц товара
                 'value'     => apply_filters( 'inwccrm_fivePost_orderitem_value', $itemQuantity, $order, $orderItem ),
                 // Цена за единицу товара
