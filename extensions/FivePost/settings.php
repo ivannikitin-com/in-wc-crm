@@ -21,6 +21,14 @@ namespace IN_WC_CRM;
             <td><input name="FivePost-api-token" type="password" id="FivePost-api-token"  
                 value="<?php echo $this->getParam( 'FivePost-api-token', '' ) ?>" ></td>
         </tr>
+        <tr>
+            <th scope="row"><label for="FivePost-default-weight"><?php esc_html_e( 'Вес товара по умолчанию', IN_WC_CRM) ?></label></th>
+            <td>
+                <input name="FivePost-default-weight" type="number" id="FivePost-default-weight" min="0" step="any"
+                    value="<?php echo esc_attr( $this->getParam( 'FivePost-default-weight', '' ) ) ?>">
+                <?php echo esc_html( get_option( 'woocommerce_weight_unit' ) ); ?>
+            </td>
+        </tr>
 
     </tbody>
 </table>

@@ -72,6 +72,18 @@ class FivePost extends Base
     {
         $this->settings['FivePost-api-token'] = isset( $_POST['FivePost-api-token'] ) ? sanitize_text_field( $_POST['FivePost-api-token'] ) : '';
 
+        $defaultWeight = isset( $_POST['FivePost-default-weight'] ) ? sanitize_text_field( $_POST['FivePost-default-weight'] ) : '';
+        $defaultWeight = trim( $defaultWeight );
+        if ( '' !== $defaultWeight ) {
+            if ( '.' === get_option( 'woocommerce_price_decimal_sep' ) ) {
+                $defaultWeight = str_replace( ',', '.', $defaultWeight );
+            }
+            if ( ! is_numeric( $defaultWeight ) || floatval( $defaultWeight ) < 0 ) {
+                $defaultWeight = '';
+            }
+        }
+        $this->settings['FivePost-default-weight'] = $defaultWeight;
+
         return parent::saveSettings();
     }    
 
