@@ -98,9 +98,22 @@ jQuery(function ($){
          });
 
          $.post( ajaxurl, ajaxRequest, function(response) {
-            var dataSet = JSON.parse( response );
+            var payload = JSON.parse( response );
+            var dataSet = payload.orders || [];
             $('#orderTable').dataTable().fnClearTable();
             if (dataSet.length > 0 ) $('#orderTable').dataTable().fnAddData( dataSet );
+
+            var $banner = $('#orderListTruncatedBanner');
+            if ( payload.truncated ) {
+                var message = IN_WC_CRM_OrderList.truncatedMessage
+                    .replace( '%1$s', payload.shown )
+                    .replace( '%2$s', payload.total )
+                    .replace( '%3$s', payload.limit );
+                $banner.text( message ).show();
+            } else {
+                $banner.hide().text('');
+            }
+
            $('#loadBanner').hide('fast');   
         });         
 

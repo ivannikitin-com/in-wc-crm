@@ -158,6 +158,7 @@ class OrderList extends BaseAdminPage
             'viewOrderTitle' => __( 'Просмотреть заказ', IN_WC_CRM ),
             'pageLength' => apply_filters( 'inwccrm_orderlist_page_length', 10 ),
             'columns' => $this->getColumns(),
+            'truncatedMessage' => __( 'Показано %1$s из %2$s. За один раз загружается не больше %3$s заказов. Обработайте их и нажмите «Найти заказы» снова — подгрузится следующая порция.', IN_WC_CRM ),
         );
         wp_localize_script( $scriptID, $objectName, $data );
     }
@@ -223,11 +224,13 @@ class OrderList extends BaseAdminPage
 
         // Параметры запроса
         // https://github.com/woocommerce/woocommerce/wiki/wc_get_orders-and-WC_Order_Query
+        $limit = (int) apply_filters( 'inwccrm_orderlist_datatable_order_limit', 100 );
         $args = array(
-            'limit'     => apply_filters( 'inwccrm_orderlist_datatable_order_limit', 100 ),
+            'limit'     => $limit,
             'orderby'   => 'date',
             'order'     => 'DESC',
-            'return'    => 'objects'
+            'return'    => 'objects',
+            'paginate'  => true,
         );
         
         // Статус заказов
@@ -267,7 +270,9 @@ class OrderList extends BaseAdminPage
         $result = array();
 
         $orderColumns = $this->getColumns();
-        $orders = wc_get_orders( $args );
+        $query = wc_get_orders( $args );
+        $orders = $query->orders;
+        $total = (int) $query->total;
         foreach ($orders as $order)
         {
             if ( ! empty( $shippingMethods ) )
@@ -310,7 +315,13 @@ class OrderList extends BaseAdminPage
         }
         
         // Передача результатов
-        echo json_encode( $result );
+        echo json_encode( array(
+            'orders'    => $result,
+            'shown'     => count( $result ),
+            'total'     => $total,
+            'limit'     => $limit,
+            'truncated' => $total > $limit,
+        ) );
         wp_die();
     }
 }

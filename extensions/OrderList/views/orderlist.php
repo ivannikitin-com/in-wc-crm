@@ -72,6 +72,17 @@ $defaultStatus = apply_filters( 'inwccrm_orderlist_default_status', 'wc-processi
     <?php do_action( 'inwccrm_orderlist_actions_after' ) ?>
 </section>
 
+<div id="orderListTruncatedBanner" style="
+  display: none;
+  margin: 10px auto;
+  max-width: 900px;
+  padding: 10px 14px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  text-align: center;
+"></div>
+
 <!-- Таблица данных -->
 <section id="orderListDataTable">
     <style>
