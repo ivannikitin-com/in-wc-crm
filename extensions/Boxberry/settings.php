@@ -19,7 +19,16 @@ namespace IN_WC_CRM;
         <tr>
             <th scope="row"><label for="Boxberry-api-token"><?php esc_html_e( 'API токен', IN_WC_CRM) ?></label></th>
             <td><input name="Boxberry-api-token" type="password" id="Boxberry-api-token"  
-                value="<?php echo $this->getParam( 'Boxberry-api-token', '' ) ?>" ></td>
+                value="<?php echo $this->getParam( 'Boxberry-api-token', '' ) ?>" >
+                <p class="description"><?php esc_html_e( 'Для заказов, сделанных на medknigaservis', IN_WC_CRM) ?></p></td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="Boxberry-api-token-rosmedlib"><?php esc_html_e( 'API токен', IN_WC_CRM) ?></label></th>
+            <td>
+                <input name="Boxberry-api-token-rosmedlib" type="password" id="Boxberry-api-token-rosmedlib"  
+                    value="<?php echo $this->getParam( 'Boxberry-api-token-rosmedlib', '' ) ?>" >
+                <p class="description"><?php esc_html_e( 'Для заказов, сделанных на rosmedlib', IN_WC_CRM) ?></p>
+            </td>
         </tr>
 
     </tbody>

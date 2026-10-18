@@ -71,6 +71,7 @@ class Boxberry extends Base
     public function saveSettings()
     {
         $this->settings['Boxberry-api-token'] = isset( $_POST['Boxberry-api-token'] ) ? sanitize_text_field( $_POST['Boxberry-api-token'] ) : '';
+        $this->settings['Boxberry-api-token-rosmedlib'] = isset( $_POST['Boxberry-api-token-rosmedlib'] ) ? sanitize_text_field( $_POST['Boxberry-api-token-rosmedlib'] ) : '';
 
         return parent::saveSettings();
     }    
@@ -120,6 +121,7 @@ class Boxberry extends Base
             // Подключение
             $api = new API(
                 $this->getParam( 'Boxberry-api-token', '' ),         // token
+                $this->getParam( 'Boxberry-api-token-rosmedlib', '' ),  // token для заказов с rosmedlib
             );
 
             // ID заказов для отправки

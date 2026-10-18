@@ -19,7 +19,16 @@ namespace IN_WC_CRM;
         <tr>
             <th scope="row"><label for="FivePost-api-token"><?php esc_html_e( 'API токен', IN_WC_CRM) ?></label></th>
             <td><input name="FivePost-api-token" type="password" id="FivePost-api-token"  
-                value="<?php echo $this->getParam( 'FivePost-api-token', '' ) ?>" ></td>
+                value="<?php echo $this->getParam( 'FivePost-api-token', '' ) ?>" >
+                <p class="description"><?php esc_html_e( 'Для заказов, сделанных на medknigaservis', IN_WC_CRM) ?></p></td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="FivePost-api-token-rosmedlib"><?php esc_html_e( 'API токен', IN_WC_CRM) ?></label></th>
+            <td>
+                <input name="FivePost-api-token-rosmedlib" type="password" id="FivePost-api-token-rosmedlib"  
+                    value="<?php echo $this->getParam( 'FivePost-api-token-rosmedlib', '' ) ?>" >
+                <p class="description"><?php esc_html_e( 'Для заказов, сделанных на rosmedlib', IN_WC_CRM) ?></p>
+            </td>
         </tr>
         <tr>
             <th scope="row"><label for="FivePost-default-weight"><?php esc_html_e( 'Вес товара по умолчанию', IN_WC_CRM) ?></label></th>

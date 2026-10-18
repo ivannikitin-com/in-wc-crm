@@ -28,6 +28,7 @@ class API
      * Параметры удаленного сервера, подключения и других параметров
      */
     private $token;             // API Токен
+    private $tokenRosmedlib;    // API Токен для заказов, сделанных на rosmedlib
 
 
     /**
@@ -49,11 +50,27 @@ class API
     /**
      * Конструктор
      * @param string    $token            API Токен
+     * @param string    $tokenRosmedlib   API Токен для заказов, сделанных на rosmedlib
 
      */
-    public function __construct( $token )
+    public function __construct( $token, $tokenRosmedlib )
     {
         $this->token = $token;
+        $this->tokenRosmedlib = $tokenRosmedlib;
+    }
+
+    /**
+     * Возвращает API токен для заказа
+     * @param WC_Order  $order  Заказ WooCommerce
+     * @return string
+     */
+    private function getOrderToken( $order )
+    {
+        if ( ! empty( $this->tokenRosmedlib ) && 'rosmedlib' === $order->get_meta( '_order_src' ) )
+        {
+            return $this->tokenRosmedlib;
+        }
+        return $this->token;
     }
 
     /**
@@ -355,7 +372,7 @@ class API
         self::write_rest_log( __( 'BoxBerry log: send orders', IN_WC_CRM ) . ': ' . self::URL );
 
         // Проверим данные для входа
-        if ( empty( $this->token ) )
+        if ( empty( $this->token ) && empty( $this->tokenRosmedlib ) )
         {
             throw new NoСredentialsException( __( 'Не указан API токен', IN_WC_CRM ) );
         }
@@ -391,7 +408,7 @@ class API
                 // Передача заказа
                 $args = array(
                     'body' => array( 
-                        'token' => $this->token, 
+                        'token' => $this->getOrderToken( $order ), 
                         'method' => 'ParselCreate',
                         'sdata' => json_encode($data)
                     )

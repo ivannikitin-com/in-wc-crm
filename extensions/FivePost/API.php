@@ -13,6 +13,12 @@ require 'Exceptions.php';
 class API
 {
     /**
+     * API ключи
+     */
+    private $apiKey;            // API ключ
+    private $apiKeyRosmedlib;   // API ключ для заказов, сделанных на rosmedlib
+
+    /**
      * Лог файл
      */
     const LOGFILE = 'FivePost-rest.log';
@@ -56,22 +62,48 @@ class API
 
     /**
      * Конструктор
-     * @param string    $apiKey            API ключ
+     * @param string    $apiKey              API ключ
+     * @param string    $apiKeyRosmedlib     API ключ для заказов, сделанных на rosmedlib
 
      */
-    public function __construct( $apiKey )
+    public function __construct( $apiKey, $apiKeyRosmedlib )
     {
-        $this->token = get_transient( self::TOKEN_CACHE );
-        if ( false === $this->token ) {
-            $this->token = $this->getToken( $apiKey );
-            set_transient( self::TOKEN_CACHE, $this->token, 30 * MINUTE_IN_SECONDS );
-        }
+        $this->apiKey = $apiKey;
+        $this->apiKeyRosmedlib = $apiKeyRosmedlib;
     }
 
     /**
-     * Получает Bearer токен
+     * Возвращает API ключ для заказа
+     * @param WC_Order  $order  Заказ WooCommerce
+     * @return string
      */
-    private function getToken( $apiKey ){
+    private function getOrderApiKey( $order )
+    {
+        if ( ! empty( $this->apiKeyRosmedlib ) && 'rosmedlib' === $order->get_meta( '_order_src' ) )
+        {
+            return $this->apiKeyRosmedlib;
+        }
+        return $this->apiKey;
+    }
+
+    /**
+     * Получает Bearer токен (кэшируется отдельно для каждого API ключа)
+     */
+    private function getToken( $apiKey )
+    {
+        $cacheKey = self::TOKEN_CACHE . '_' . md5( $apiKey );
+        $token = get_transient( $cacheKey );
+        if ( false === $token ) {
+            $token = $this->requestToken( $apiKey );
+            set_transient( $cacheKey, $token, 30 * MINUTE_IN_SECONDS );
+        }
+        return $token;
+    }
+
+    /**
+     * Запрашивает Bearer токен
+     */
+    private function requestToken( $apiKey ){
         $this->logAlways( 'Получение токена для API Key: ' . $apiKey ); 
         
         // Запрос токена
@@ -388,7 +420,7 @@ class API
         $this->logAlways( __( 'FivePost log: send orders', IN_WC_CRM ) . ': ' . $url );
 
         // Проверим данные для входа
-        if ( empty( $this->token ) )
+        if ( empty( $this->apiKey ) && empty( $this->apiKeyRosmedlib ) )
         {
             throw new NoСredentialsException( __( 'Не получен API токен', IN_WC_CRM ) );
         }
@@ -413,6 +445,9 @@ class API
                 $data = $this->getOrderData( $order );
                 $this->logAlways( __( 'Запрос', IN_WC_CRM ) . ': ' .  var_export( $data, true ) );
 
+                // Получаем токен для заказа
+                $token = $this->getToken( $this->getOrderApiKey( $order ) );
+
                 // Формируем JSON
                 $json_data = json_encode( array(
                     'partnerOrders' => array( $data) 
@@ -422,7 +457,7 @@ class API
                  // Передаем заказ
                 $response = wp_remote_post( $url, array(
                     'headers' => array(
-                        'Authorization' => 'Bearer ' . $this->token,
+                        'Authorization' => 'Bearer ' . $token,
                         'Content-type' => 'application/json',
                     ),                    
                     'body' => $json_data

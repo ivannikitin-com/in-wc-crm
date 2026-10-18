@@ -71,6 +71,7 @@ class FivePost extends Base
     public function saveSettings()
     {
         $this->settings['FivePost-api-token'] = isset( $_POST['FivePost-api-token'] ) ? sanitize_text_field( $_POST['FivePost-api-token'] ) : '';
+        $this->settings['FivePost-api-token-rosmedlib'] = isset( $_POST['FivePost-api-token-rosmedlib'] ) ? sanitize_text_field( $_POST['FivePost-api-token-rosmedlib'] ) : '';
 
         $defaultWeight = isset( $_POST['FivePost-default-weight'] ) ? sanitize_text_field( $_POST['FivePost-default-weight'] ) : '';
         $defaultWeight = trim( $defaultWeight );
@@ -131,7 +132,8 @@ class FivePost extends Base
         {
             // Подключение
             $api = new API(
-                $this->getParam( 'FivePost-api-token', '' ),         // token
+                $this->getParam( 'FivePost-api-token', '' ),         // apiKey
+                $this->getParam( 'FivePost-api-token-rosmedlib', '' ),  // apiKey для заказов с rosmedlib
             );
 
             // ID заказов для отправки
