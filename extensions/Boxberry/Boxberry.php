@@ -73,6 +73,9 @@ class Boxberry extends Base
         $this->settings['Boxberry-api-token'] = isset( $_POST['Boxberry-api-token'] ) ? sanitize_text_field( $_POST['Boxberry-api-token'] ) : '';
         $this->settings['Boxberry-api-token-rosmedlib'] = isset( $_POST['Boxberry-api-token-rosmedlib'] ) ? sanitize_text_field( $_POST['Boxberry-api-token-rosmedlib'] ) : '';
 
+        $this->settings['Boxberry-shop-name1'] = isset( $_POST['Boxberry-shop-name1'] ) ? sanitize_text_field( $_POST['Boxberry-shop-name1'] ) : '';
+        $this->settings['Boxberry-shop-name1-rosmedlib'] = isset( $_POST['Boxberry-shop-name1-rosmedlib'] ) ? sanitize_text_field( $_POST['Boxberry-shop-name1-rosmedlib'] ) : '';
+
         return parent::saveSettings();
     }    
 
@@ -120,8 +123,10 @@ class Boxberry extends Base
         {
             // Подключение
             $api = new API(
-                $this->getParam( 'Boxberry-api-token', '' ),         // token
-                $this->getParam( 'Boxberry-api-token-rosmedlib', '' ),  // token для заказов с rosmedlib
+                $this->getParam( 'Boxberry-api-token', '' ),                        // token
+                $this->getParam( 'Boxberry-api-token-rosmedlib', '' ),              // token для заказов с rosmedlib
+                $this->getParam( 'Boxberry-shop-name1', API::DEFAULT_SHOP_NAME1 ),  // пункт приема
+                $this->getParam( 'Boxberry-shop-name1-rosmedlib', '' )              // пункт приема для rosmedlib
             );
 
             // ID заказов для отправки

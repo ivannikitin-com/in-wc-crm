@@ -13,10 +13,17 @@ require 'Exceptions.php';
 class API
 {
     /**
+     * Значение по умолчанию для заказов, сделанных на medknigaservis
+     */
+    const DEFAULT_SENDER_LOCATION = 'medknigaservis.ru';
+
+    /**
      * API ключи
      */
-    private $apiKey;            // API ключ
-    private $apiKeyRosmedlib;   // API ключ для заказов, сделанных на rosmedlib
+    private $apiKey;                        // API ключ
+    private $apiKeyRosmedlib;               // API ключ для заказов, сделанных на rosmedlib
+    private $senderLocation;                // Склад отправителя для заказов, сделанных на medknigaservis
+    private $senderLocationRosmedlib;       // Склад отправителя для заказов, сделанных на rosmedlib
 
     /**
      * Лог файл
@@ -62,14 +69,18 @@ class API
 
     /**
      * Конструктор
-     * @param string    $apiKey              API ключ
-     * @param string    $apiKeyRosmedlib     API ключ для заказов, сделанных на rosmedlib
+     * @param string    $apiKey                     API ключ
+     * @param string    $apiKeyRosmedlib            API ключ для заказов, сделанных на rosmedlib
+     * @param string    $senderLocation             Склад отправителя для заказов, сделанных на medknigaservis
+     * @param string    $senderLocationRosmedlib    Склад отправителя для заказов, сделанных на rosmedlib
 
      */
-    public function __construct( $apiKey, $apiKeyRosmedlib )
+    public function __construct( $apiKey, $apiKeyRosmedlib, $senderLocation, $senderLocationRosmedlib )
     {
         $this->apiKey = $apiKey;
         $this->apiKeyRosmedlib = $apiKeyRosmedlib;
+        $this->senderLocation = $senderLocation;
+        $this->senderLocationRosmedlib = $senderLocationRosmedlib;
     }
 
     /**
@@ -84,6 +95,20 @@ class API
             return $this->apiKeyRosmedlib;
         }
         return $this->apiKey;
+    }
+
+    /**
+     * Возвращает склад отправителя для заказа
+     * @param WC_Order  $order  Заказ WooCommerce
+     * @return string
+     */
+    private function getOrderSenderLocation( $order )
+    {
+        if ( 'rosmedlib' === $order->get_meta( '_order_src' ) )
+        {
+            return $this->senderLocationRosmedlib;
+        }
+        return $this->senderLocation;
     }
 
     /**
@@ -147,7 +172,7 @@ class API
         // Проверки обязательных параметров
 
         // Склад отправителя
-        $senderLocation = 'medknigaservis.ru';  // TODO: Сделать параметр в настройках
+        $senderLocation = $this->getOrderSenderLocation( $order );
         if ( empty( $senderLocation ) )
         {
             throw new NoRequiredParameter( __( 'Не определен параметр senderLocation (склад отправителя)', IN_WC_CRM ) );

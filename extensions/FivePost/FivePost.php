@@ -73,6 +73,9 @@ class FivePost extends Base
         $this->settings['FivePost-api-token'] = isset( $_POST['FivePost-api-token'] ) ? sanitize_text_field( $_POST['FivePost-api-token'] ) : '';
         $this->settings['FivePost-api-token-rosmedlib'] = isset( $_POST['FivePost-api-token-rosmedlib'] ) ? sanitize_text_field( $_POST['FivePost-api-token-rosmedlib'] ) : '';
 
+        $this->settings['FivePost-sender-location'] = isset( $_POST['FivePost-sender-location'] ) ? sanitize_text_field( $_POST['FivePost-sender-location'] ) : '';
+        $this->settings['FivePost-sender-location-rosmedlib'] = isset( $_POST['FivePost-sender-location-rosmedlib'] ) ? sanitize_text_field( $_POST['FivePost-sender-location-rosmedlib'] ) : '';
+
         $defaultWeight = isset( $_POST['FivePost-default-weight'] ) ? sanitize_text_field( $_POST['FivePost-default-weight'] ) : '';
         $defaultWeight = trim( $defaultWeight );
         if ( '' !== $defaultWeight ) {
@@ -134,6 +137,8 @@ class FivePost extends Base
             $api = new API(
                 $this->getParam( 'FivePost-api-token', '' ),         // apiKey
                 $this->getParam( 'FivePost-api-token-rosmedlib', '' ),  // apiKey для заказов с rosmedlib
+                $this->getParam( 'FivePost-sender-location', API::DEFAULT_SENDER_LOCATION ),  // склад отправителя
+                $this->getParam( 'FivePost-sender-location-rosmedlib', '' )                   // склад отправителя для rosmedlib
             );
 
             // ID заказов для отправки

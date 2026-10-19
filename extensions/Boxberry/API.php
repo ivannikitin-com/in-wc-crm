@@ -25,10 +25,17 @@ class API
     
 
     /**
+     * Значение по умолчанию для заказов, сделанных на medknigaservis
+     */
+    const DEFAULT_SHOP_NAME1 = '0262bd9d-5837-4209-8f09-e3217a765198';
+
+    /**
      * Параметры удаленного сервера, подключения и других параметров
      */
-    private $token;             // API Токен
-    private $tokenRosmedlib;    // API Токен для заказов, сделанных на rosmedlib
+    private $token;                 // API Токен
+    private $tokenRosmedlib;        // API Токен для заказов, сделанных на rosmedlib
+    private $shopName1;             // Код пункта приема для заказов, сделанных на medknigaservis
+    private $shopName1Rosmedlib;    // Код пункта приема для заказов, сделанных на rosmedlib
 
 
     /**
@@ -49,14 +56,18 @@ class API
 
     /**
      * Конструктор
-     * @param string    $token            API Токен
-     * @param string    $tokenRosmedlib   API Токен для заказов, сделанных на rosmedlib
+     * @param string    $token                  API Токен
+     * @param string    $tokenRosmedlib         API Токен для заказов, сделанных на rosmedlib
+     * @param string    $shopName1              Код пункта приема для заказов, сделанных на medknigaservis
+     * @param string    $shopName1Rosmedlib     Код пункта приема для заказов, сделанных на rosmedlib
 
      */
-    public function __construct( $token, $tokenRosmedlib )
+    public function __construct( $token, $tokenRosmedlib, $shopName1, $shopName1Rosmedlib )
     {
         $this->token = $token;
         $this->tokenRosmedlib = $tokenRosmedlib;
+        $this->shopName1 = $shopName1;
+        $this->shopName1Rosmedlib = $shopName1Rosmedlib;
     }
 
     /**
@@ -74,6 +85,20 @@ class API
     }
 
     /**
+     * Возвращает код пункта приема для заказа
+     * @param WC_Order  $order  Заказ WooCommerce
+     * @return string
+     */
+    private function getOrderShopName1( $order )
+    {
+        if ( 'rosmedlib' === $order->get_meta( '_order_src' ) )
+        {
+            return $this->shopName1Rosmedlib;
+        }
+        return $this->shopName1;
+    }
+
+    /**
      * Возвращает структуру заказа для отправки
      * https://documenter.getpostman.com/view/7354859/SzezaWVs?version=latest#190f1627-c943-4b26-a3ac-58db8e7355e0
      * @param WC_Order  $order  Заказ WooCommerce
@@ -81,6 +106,8 @@ class API
      */
     private function getOrderData( $order )
     {
+        $shopName1 = $this->getOrderShopName1( $order );
+
         // Элементы заказа (сначала строки без финальной сверки с Boxberry)
         $item_rows = array();
         $weghtTotal = 0;
@@ -319,7 +346,7 @@ class API
                 // Код пункта выдачи 
                 'name'   => apply_filters( 'inwccrm_boxberry_shop_name',  '', $order ),
                 // Код пункта поступления
-                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', '0262bd9d-5837-4209-8f09-e3217a765198', $order ),
+                'name1'  => apply_filters( 'inwccrm_boxberry_shop_name1', $shopName1, $order ),
             ),
             
             // Блок с информацией о получателе отправления

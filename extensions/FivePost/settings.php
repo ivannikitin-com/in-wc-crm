@@ -23,11 +23,27 @@ namespace IN_WC_CRM;
                 <p class="description"><?php esc_html_e( 'Для заказов, сделанных на medknigaservis', IN_WC_CRM) ?></p></td>
         </tr>
         <tr>
+            <th scope="row"><label for="FivePost-sender-location"><?php esc_html_e( 'Склад отправителя по умолчанию', IN_WC_CRM) ?></label></th>
+            <td>
+                <input name="FivePost-sender-location" type="text" id="FivePost-sender-location" class="regular-text"
+                    value="<?php echo esc_attr( $this->getParam( 'FivePost-sender-location', \IN_WC_CRM\Extensions\FivePost\API::DEFAULT_SENDER_LOCATION ) ) ?>">
+                <p class="description"><?php esc_html_e( 'Номер склада партнера (partnerLocationId). Для заказов, сделанных на medknigaservis', IN_WC_CRM) ?></p>
+            </td>
+        </tr>
+        <tr>
             <th scope="row"><label for="FivePost-api-token-rosmedlib"><?php esc_html_e( 'API токен', IN_WC_CRM) ?></label></th>
             <td>
                 <input name="FivePost-api-token-rosmedlib" type="password" id="FivePost-api-token-rosmedlib"  
                     value="<?php echo $this->getParam( 'FivePost-api-token-rosmedlib', '' ) ?>" >
                 <p class="description"><?php esc_html_e( 'Для заказов, сделанных на rosmedlib', IN_WC_CRM) ?></p>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="FivePost-sender-location-rosmedlib"><?php esc_html_e( 'Склад отправителя по умолчанию', IN_WC_CRM) ?></label></th>
+            <td>
+                <input name="FivePost-sender-location-rosmedlib" type="text" id="FivePost-sender-location-rosmedlib" class="regular-text"
+                    value="<?php echo esc_attr( $this->getParam( 'FivePost-sender-location-rosmedlib', '' ) ) ?>">
+                <p class="description"><?php esc_html_e( 'Номер склада партнера (partnerLocationId). Для заказов, сделанных на rosmedlib', IN_WC_CRM) ?></p>
             </td>
         </tr>
         <tr>
