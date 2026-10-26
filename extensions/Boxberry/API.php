@@ -170,16 +170,19 @@ class API
 
         $feesTotal = $order->get_total_fees();
         $fees_total_rounded = round( $feesTotal, $decimals );
-        $payment_sum_f = apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order );
-        $delivery_sum_f = apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order );
-        $fees_sum_f = apply_filters( 'inwccrm_boxberry_fees_sum', $fees_total_rounded, $order );
+        // API требует точного баланса price + delivery_sum + fees_sum = payment_sum.
+        // Дробная стоимость доставки (например, 454.704918) в этот баланс не встаёт,
+        // поэтому все денежные поля передаём с одной точностью.
+        $payment_sum_f = round( (float) apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ), $decimals );
+        $delivery_sum_f = round( (float) apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order ), $decimals );
+        $fees_sum_f = round( (float) apply_filters( 'inwccrm_boxberry_fees_sum', $fees_total_rounded, $order ), $decimals );
         // Отрицательные fees (бонусы) API не учитывает в балансе при COD —
         // не передаём их и впитываем скидку в цены товаров (как в FivePost).
-        if ( (float) $fees_sum_f < 0 ) {
+        if ( $fees_sum_f < 0 ) {
             $fees_sum_f = 0.0;
         }
         $goods_target = round(
-            (float) $payment_sum_f - (float) $delivery_sum_f - (float) $fees_sum_f,
+            $payment_sum_f - $delivery_sum_f - $fees_sum_f,
             $decimals
         );
 
@@ -285,9 +288,9 @@ class API
             'price'         => apply_filters( 'inwccrm_boxberry_price', round( $summTotal, $decimals ), $order ),
             // Сумма к оплате (сумма, которую необходимо взять с получателя).
             // Для полностью предоплаченного заказа указывать 0.
-            'payment_sum'   => apply_filters( 'inwccrm_boxberry_payment_sum', $order->get_total(), $order ), 
+            'payment_sum'   => $payment_sum_f, 
             // Стоимость доставки объявленная получателю 
-            'delivery_sum'  => apply_filters( 'inwccrm_boxberry_delivery_sum', $order->get_shipping_total(), $order ),
+            'delivery_sum'  => $delivery_sum_f,
             // Сумма сборов (отрицательные уже обнулены выше и учтены в ценах товаров)
             'fees_sum'      => $fees_sum_f,
             // Вид выдачи заказа, возможные значения:
