@@ -286,7 +286,8 @@ class API
         // Получаем сумму сборов (fees) - бонусы, скидки и другие дополнительные сборы
         $feesTotal = $order->get_total_fees();
 
-        $deliveryCost = floatval( $order->get_shipping_total() );
+        // Стоимость доставки с НДС: API FivePost принимает не более 2 знаков после запятой.
+        $deliveryCost = round( floatval( $order->get_shipping_total() ) + abs( floatval( $order->get_shipping_tax() ) ), min( 2, (int) $decimals ) );
         $paymentValue = ( empty( $order->get_transaction_id() ) ) ? floatval( $order->get_total() ) : 0;
 
         $servicesTotal = ( $feesTotal > 0 ) ? round( $feesTotal, $decimals ) : 0.0;
