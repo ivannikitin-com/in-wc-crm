@@ -17,6 +17,11 @@ class API
     const META_REQUEST_ID = '_yandexnew_request_id';
 
     /**
+     * Мета-поле заказа с ID станции ПВЗ Яндекса
+     */
+    const META_PLATFORM_STATION_ID = '_yandexnew_platform_station_id';
+
+    /**
      * Хосты API
      */
     const HOST_PROD = 'https://b2b-authproxy.taxi.yandex.net';
@@ -28,6 +33,8 @@ class API
     const METHOD_OFFERS_CREATE   = '/api/b2b/platform/offers/create';
     const METHOD_OFFERS_CONFIRM  = '/api/b2b/platform/offers/confirm';
     const METHOD_PICKUPS_LIST    = '/api/b2b/platform/pickups/scheduled/list';
+    const METHOD_PICKUP_OPTIONS  = '/api/b2b/platform/pickups/pickup-options';
+    const METHOD_PICKUPS_CREATE  = '/api/b2b/platform/pickups/create';
 
     /**
      * Значения по умолчанию
@@ -91,6 +98,58 @@ class API
             return $this->tokenRosmedlib;
         }
         return $this->token;
+    }
+
+    /**
+     * Создает отгрузку на ближайший доступный интервал, если у склада нет запланированных отгрузок
+     * @param string    $stationId  ID станции отгрузки
+     * @param string    $token      Bearer токен
+     */
+    private function ensureScheduledPickup( $stationId, $token )
+    {
+        if ( empty( $stationId ) || ! empty( $this->getScheduledPickups( $stationId, $token ) ) )
+        {
+            return;
+        }
+
+        try
+        {
+            // Ближайший доступный интервал забора со склада
+            $options = $this->request( self::METHOD_PICKUP_OPTIONS, $token, array( 'station_id' => $stationId ) );
+            if ( empty( $options['pickup_options'][0]['pickup_local_date'] ) || empty( $options['pickup_options'][0]['pickup_local_time_intervals'][0] ) )
+            {
+                return;
+            }
+
+            $option   = $options['pickup_options'][0];
+            $interval = $option['pickup_local_time_intervals'][0];
+
+            $response = $this->request( self::METHOD_PICKUPS_CREATE, $token, array(
+                'station_id'                 => $stationId,
+                'pickup_local_date'          => $option['pickup_local_date'],
+                'pickup_local_time_interval' => array(
+                    'from' => $interval['from'],
+                    'to'   => $interval['to'],
+                ),
+                'parameters'                 => array(
+                    // Минимальный объем, который принимает API
+                    'volume_m3'    => '0.25',
+                    'weight_g'     => 1000,
+                    'requirements' => array( 'loaders_required' => false ),
+                ),
+            ) );
+
+            $this->log( __( 'Создана отгрузка со склада', IN_WC_CRM ) . ' ' . $stationId . ': ' .
+                $option['pickup_local_date'] . ' ' . $interval['from'] . '-' . $interval['to'] .
+                '. ' . __( 'ID отгрузки', IN_WC_CRM ) . ': ' . $response['pickup_id'] );
+
+            // Перечитаем список отгрузок с учетом созданной
+            unset( $this->pickupsCache[ $stationId . '|' . md5( $token ) ] );
+        }
+        catch ( \Exception $e )
+        {
+            $this->log( __( 'Не удалось создать отгрузку со склада', IN_WC_CRM ) . ': ' . $e->getMessage() );
+        }
     }
 
     /**
@@ -173,7 +232,7 @@ class API
         // Доставка в ПВЗ: ID станции хранится в мета-поле заказа
         $stationId = apply_filters(
             'inwccrm_yandexnew_destination_platform_station_id',
-            (string) $order->get_meta( '_yandexnew_platform_station_id' ),
+            (string) $order->get_meta( self::META_PLATFORM_STATION_ID ),
             $order
         );
 
@@ -375,7 +434,9 @@ class API
             }
 
             $itemTotal = (float) $orderItem->get_total() + (float) $orderItem->get_total_tax();
-            $unitPrice = (int) round( $itemTotal / $quantity * 100, 0 );
+            // Цена за единицу с НДС, округленная до знаков после запятой магазина:
+            // итог заказа считается так же, поэтому сумма к получению совпадет с ним
+            $unitPrice = (int) round( round( $itemTotal / $quantity, wc_get_price_decimals() ) * 100, 0 );
 
             $article = ( $product && ! empty( $product->get_sku() ) )
                 ? $product->get_sku()
@@ -450,7 +511,12 @@ class API
             ( 'cod' === $order->get_payment_method() ) ? 'card_on_receipt' : 'already_paid',
             $order
         );
-        $deliveryCost = ( 'already_paid' === $paymentMethod ) ? 0 : (int) round( (float) $order->get_shipping_total() * 100 );
+        // Стоимость доставки уходит та, которую платит получатель, то есть с НДС:
+        // в заказе стоимость доставки хранится без налога, налог — отдельно.
+        // Округляем до знаков после запятой магазина, как Woocommerce считает итог заказа.
+        $deliveryGross = (float) $order->get_shipping_total() + (float) $order->get_shipping_tax();
+        $deliveryCost  = ( 'already_paid' === $paymentMethod ) ? 0
+            : (int) round( round( $deliveryGross, wc_get_price_decimals() ) * 100 );
 
         // Получатель
         $firstName = $order->get_shipping_first_name();
@@ -577,6 +643,10 @@ class API
         try
         {
             $token = $this->getOrderToken( $order );
+
+            // Если у склада нет запланированных отгрузок, создадим ближайшую
+            $this->ensureScheduledPickup( $this->getOrderSourceStation( $order ), $token );
+
             $data = $this->getOrderData( $order );
 
             // Получение варианта доставки

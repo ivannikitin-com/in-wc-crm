@@ -27,6 +27,7 @@ class YandexNew extends Base
         add_action( 'inwccrm_orderlist_actions_after', array( $this, 'renderControl' ), 33 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
         add_action( 'wp_ajax_yandexnew_send_orders', array( $this, 'sendOrders' ) );
+        add_action( 'woocommerce_before_order_object_save', array( $this, 'savePlatformStationId' ), 20 );
     }
 
     /**
@@ -107,6 +108,33 @@ class YandexNew extends Base
         }
 
         @include 'controls.php';
+    }
+
+    /**
+     * Сохраняет ID станции ПВЗ Яндекса из пункта выдачи, выбранного на чекауте
+     * @param WC_Order $order Заказ WooCommerce
+     */
+    public function savePlatformStationId( $order )
+    {
+        foreach ( $order->get_shipping_methods() as $shippingMethod )
+        {
+            if ( 0 !== strpos( $shippingMethod->get_method_id(), 'boxberry_self' ) )
+            {
+                continue;
+            }
+
+            $code = (string) $order->get_meta( 'boxberry_code' );
+
+            // Код пункта выдачи Яндекса — UUID, код пункта Boxberry короче
+            if ( strlen( $code ) > 20 )
+            {
+                $order->update_meta_data( API::META_PLATFORM_STATION_ID, $code );
+            }
+            else
+            {
+                $order->delete_meta_data( API::META_PLATFORM_STATION_ID );
+            }
+        }
     }
 
     /**
