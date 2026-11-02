@@ -101,12 +101,6 @@ class YandexNew extends Base
      */
     public function renderControl()
     {
-        // Кнопка выгрузки доступна только администратору
-        if ( ! in_array( 'administrator', (array) wp_get_current_user()->roles, true ) )
-        {
-            return;
-        }
-
         @include 'controls.php';
     }
 
