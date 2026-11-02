@@ -169,16 +169,89 @@ class API
     }
 
     /**
+     * Возвращает ID станции ПВЗ Яндекса из пункта выдачи, выбранного на чекауте
+     * @param WC_Order  $order  Заказ WooCommerce
+     * @return string   ID станции либо пустая строка
+     */
+    private function getOrderPickupStationId( $order )
+    {
+        foreach ( $order->get_shipping_methods() as $shippingMethod )
+        {
+            if ( 0 !== strpos( $shippingMethod->get_method_id(), 'boxberry_self' ) )
+            {
+                continue;
+            }
+
+            // Код пункта выдачи Яндекса длиннее кода пункта сети Boxberry
+            $code = (string) $order->get_meta( 'boxberry_code' );
+            if ( strlen( $code ) > 20 )
+            {
+                return $code;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Разбирает адрес заказа на части, которые ожидает API Яндекс Доставки
+     * @param string $street Строка адреса: улица, при необходимости с номером дома
+     * @param string $extra  Дополнительная строка адреса: дом, корпус, квартира
+     * @return array Массив: street, house, housing, building, room
+     */
+    private function parseAddress( $street, $extra )
+    {
+        $details = array();
+        $address = trim( $street . ', ' . $extra, ' ,' );
+
+        // Номер дома, улица — все, что стоит до него
+        $streetPart = $address;
+        if ( preg_match( '/(?:^|[\s,])(?:д\.|дом)\s*([0-9][0-9а-яё\/\-]*)/iu', $address, $m, PREG_OFFSET_CAPTURE ) )
+        {
+            $details['house'] = $m[1][0];
+            $streetPart = substr( $address, 0, $m[0][1] );
+        }
+        $streetPart = rtrim( $streetPart, ' ,.;' );
+        if ( '' !== $streetPart )
+        {
+            $details['street'] = $streetPart;
+        }
+
+        // Корпус, строение, квартира
+        if ( preg_match( '/(?:^|[\s,])(?:корпус|корп\.?|к\.|к(?=[0-9]))\s*([0-9с][0-9а-яё]*)/iu', $address, $m ) )
+        {
+            // «к. с2» — строение, «к. 3» — корпус
+            $details[ ( 'с' === mb_strtolower( mb_substr( $m[1], 0, 1 ) ) ) ? 'building' : 'housing' ] = $m[1];
+        }
+        if ( preg_match( '/(?:^|[\s,])(?:строение|стр\.?)\s*([0-9][0-9а-яё]*)/iu', $address, $m ) )
+        {
+            $details['building'] = $m[1];
+        }
+        if ( preg_match( '/(?:^|[\s,])(?:квартира|кв\.?)\s*([0-9][0-9а-яё\/\-]*)/iu', $address, $m ) )
+        {
+            $details['room'] = $m[1];
+        }
+
+        return $details;
+    }
+
+    /**
      * Возвращает точку получения заказа
      * @param WC_Order  $order  Заказ WooCommerce
      * @return array    Массив: destination, last_mile_policy
      */
     private function getDestination( $order )
     {
-        // Доставка в ПВЗ: ID станции хранится в мета-поле заказа
+        // Доставка в ПВЗ: ID станции хранится в мета-поле заказа,
+        // у заказов, сохраненных до появления мета-поля, берем код пункта выдачи
+        $stationId = (string) $order->get_meta( self::META_PLATFORM_STATION_ID );
+        if ( empty( $stationId ) )
+        {
+            $stationId = $this->getOrderPickupStationId( $order );
+        }
+
         $stationId = apply_filters(
             'inwccrm_yandexnew_destination_platform_station_id',
-            (string) $order->get_meta( self::META_PLATFORM_STATION_ID ),
+            $stationId,
             $order
         );
 
@@ -197,11 +270,14 @@ class API
         $city = $order->get_shipping_city();
         if ( empty( $city ) ) $city = $order->get_billing_city();
 
-        $address = trim( $order->get_shipping_address_1() . ' ' . $order->get_shipping_address_2() );
-        if ( empty( trim( $order->get_shipping_address_1() ) ) )
+        $address1 = $order->get_shipping_address_1();
+        $address2 = $order->get_shipping_address_2();
+        if ( empty( trim( $address1 ) ) )
         {
-            $address = trim( $order->get_billing_address_1() . ' ' . $order->get_billing_address_2() );
+            $address1 = $order->get_billing_address_1();
+            $address2 = $order->get_billing_address_2();
         }
+        $address = trim( $address1 . ' ' . $address2 );
 
         $fullAddress = trim( implode( ', ', array_filter( array( $city, $address ) ) ) );
         if ( empty( $fullAddress ) )
@@ -221,12 +297,21 @@ class API
             }
         }
 
-        $details = array(
-            'country'       => 'Россия',
-            'region'        => $region,
-            'locality'      => $city,
-            'full_address'  => $fullAddress,
+        $details = array_merge(
+            array(
+                'country'       => 'Россия',
+                'region'        => $region,
+                'locality'      => $city,
+                'full_address'  => $fullAddress,
+            ),
+            $this->parseAddress( $address1, $address2 )
         );
+
+        // Без номера дома Яндекс отклоняет заявку
+        if ( empty( $details['house'] ) )
+        {
+            throw new NoRequiredParameter( __( 'Не определен номер дома в адресе доставки заказа', IN_WC_CRM ) );
+        }
 
         $postcode = ( ! empty( $order->get_shipping_postcode() ) ) ? $order->get_shipping_postcode() : $order->get_billing_postcode();
         if ( ! empty( $postcode ) )
