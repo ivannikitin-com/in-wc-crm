@@ -33,8 +33,6 @@ class API
     const METHOD_OFFERS_CREATE   = '/api/b2b/platform/offers/create';
     const METHOD_OFFERS_CONFIRM  = '/api/b2b/platform/offers/confirm';
     const METHOD_PICKUPS_LIST    = '/api/b2b/platform/pickups/scheduled/list';
-    const METHOD_PICKUP_OPTIONS  = '/api/b2b/platform/pickups/pickup-options';
-    const METHOD_PICKUPS_CREATE  = '/api/b2b/platform/pickups/create';
 
     /**
      * Значения по умолчанию
@@ -98,58 +96,6 @@ class API
             return $this->tokenRosmedlib;
         }
         return $this->token;
-    }
-
-    /**
-     * Создает отгрузку на ближайший доступный интервал, если у склада нет запланированных отгрузок
-     * @param string    $stationId  ID станции отгрузки
-     * @param string    $token      Bearer токен
-     */
-    private function ensureScheduledPickup( $stationId, $token )
-    {
-        if ( empty( $stationId ) || ! empty( $this->getScheduledPickups( $stationId, $token ) ) )
-        {
-            return;
-        }
-
-        try
-        {
-            // Ближайший доступный интервал забора со склада
-            $options = $this->request( self::METHOD_PICKUP_OPTIONS, $token, array( 'station_id' => $stationId ) );
-            if ( empty( $options['pickup_options'][0]['pickup_local_date'] ) || empty( $options['pickup_options'][0]['pickup_local_time_intervals'][0] ) )
-            {
-                return;
-            }
-
-            $option   = $options['pickup_options'][0];
-            $interval = $option['pickup_local_time_intervals'][0];
-
-            $response = $this->request( self::METHOD_PICKUPS_CREATE, $token, array(
-                'station_id'                 => $stationId,
-                'pickup_local_date'          => $option['pickup_local_date'],
-                'pickup_local_time_interval' => array(
-                    'from' => $interval['from'],
-                    'to'   => $interval['to'],
-                ),
-                'parameters'                 => array(
-                    // Минимальный объем, который принимает API
-                    'volume_m3'    => '0.25',
-                    'weight_g'     => 1000,
-                    'requirements' => array( 'loaders_required' => false ),
-                ),
-            ) );
-
-            $this->log( __( 'Создана отгрузка со склада', IN_WC_CRM ) . ' ' . $stationId . ': ' .
-                $option['pickup_local_date'] . ' ' . $interval['from'] . '-' . $interval['to'] .
-                '. ' . __( 'ID отгрузки', IN_WC_CRM ) . ': ' . $response['pickup_id'] );
-
-            // Перечитаем список отгрузок с учетом созданной
-            unset( $this->pickupsCache[ $stationId . '|' . md5( $token ) ] );
-        }
-        catch ( \Exception $e )
-        {
-            $this->log( __( 'Не удалось создать отгрузку со склада', IN_WC_CRM ) . ': ' . $e->getMessage() );
-        }
     }
 
     /**
@@ -320,8 +266,16 @@ class API
         }
         catch ( \Exception $e )
         {
-            $this->log( __( 'Не удалось получить отгрузки склада', IN_WC_CRM ) . ': ' . $e->getMessage() );
-            $this->pickupsCache[ $cacheKey ] = array();
+            // 404 — у склада нет запланированных отгрузок
+            if ( $e instanceof ApiException && 404 === $e->httpCode )
+            {
+                $this->pickupsCache[ $cacheKey ] = array();
+            }
+            else
+            {
+                $this->log( __( 'Не удалось получить отгрузки склада', IN_WC_CRM ) . ': ' . $e->getMessage() );
+                throw $e;
+            }
         }
 
         return $this->pickupsCache[ $cacheKey ];
@@ -329,8 +283,8 @@ class API
 
     /**
      * Возвращает ближайший запланированный интервал отгрузки склада в UTC
-     * Для курьерской доставки со склада переданный интервал должен совпадать
-     * с созданной отгрузкой, иначе Яндекс отклоняет заявку.
+     * Переданный интервал должен совпадать с созданной в ЛК отгрузкой,
+     * иначе Яндекс отклоняет заявку.
      * @param string    $stationId  ID станции отгрузки
      * @param string    $token      Bearer токен
      * @return array|null   Массив с ключами from и to либо null
@@ -393,10 +347,11 @@ class API
 
     /**
      * Возвращает структуру заявки для отправки
-     * @param WC_Order  $order  Заказ WooCommerce
+     * @param WC_Order  $order              Заказ WooCommerce
+     * @param array     $sourceInterval     Интервал ближайшей запланированной отгрузки склада в UTC
      * @return array
      */
-    private function getOrderData( $order )
+    private function getOrderData( $order, $sourceInterval )
     {
         // Станция отгрузки
         $sourceStation = $this->getOrderSourceStation( $order );
@@ -488,22 +443,11 @@ class API
         $lastMilePolicy = apply_filters( 'inwccrm_yandexnew_last_mile_policy', $destinationData['last_mile_policy'], $order );
 
         // Источник отправки
+        // Интервал должен совпадать с созданной в ЛК отгрузкой, иначе Яндекс отклоняет заявку
         $source = array(
             'platform_station' => array( 'platform_id' => $sourceStation ),
+            'interval_utc'     => apply_filters( 'inwccrm_yandexnew_source_interval_utc', $sourceInterval, $order ),
         );
-        if ( 'time_interval' === $lastMilePolicy )
-        {
-            // Интервал отгрузки со склада обязателен для курьерской доставки
-            $sourceInterval = apply_filters(
-                'inwccrm_yandexnew_source_interval_utc',
-                $this->getSourceIntervalUtc( $sourceStation, $this->getOrderToken( $order ) ),
-                $order
-            );
-            if ( ! empty( $sourceInterval ) )
-            {
-                $source['interval_utc'] = $sourceInterval;
-            }
-        }
 
         // Оплата
         $paymentMethod = apply_filters(
@@ -612,7 +556,8 @@ class API
             $message = ( is_array( $decoded ) && ! empty( $decoded['message'] ) ) ? $decoded['message'] : $body;
             $errorCode = ( is_array( $decoded ) && ! empty( $decoded['code'] ) ) ? ' ' . $decoded['code'] : '';
             throw new ApiException(
-                __( 'Ошибка API Яндекс Доставки', IN_WC_CRM ) . ' (' . $code . $errorCode . '): ' . $message
+                __( 'Ошибка API Яндекс Доставки', IN_WC_CRM ) . ' (' . $code . $errorCode . '): ' . $message,
+                $code
             );
         }
         if ( ! is_array( $decoded ) )
@@ -644,10 +589,14 @@ class API
         {
             $token = $this->getOrderToken( $order );
 
-            // Если у склада нет запланированных отгрузок, создадим ближайшую
-            $this->ensureScheduledPickup( $this->getOrderSourceStation( $order ), $token );
+            // Заказ отправляется только при наличии запланированной отгрузки со склада
+            $sourceInterval = $this->getSourceIntervalUtc( $this->getOrderSourceStation( $order ), $token );
+            if ( empty( $sourceInterval ) )
+            {
+                throw new NoScheduledPickupException( __( 'Создайте в ЛК ЯДО отгрузку для этого заказа', IN_WC_CRM ) );
+            }
 
-            $data = $this->getOrderData( $order );
+            $data = $this->getOrderData( $order, $sourceInterval );
 
             // Получение варианта доставки
             $createResponse = $this->request( self::METHOD_OFFERS_CREATE, $token, $data );
